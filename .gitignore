@@ -12,3 +12,4 @@ results/dependency_parsing/checkpoint/best/checkpoint
 *.eval0
 results/dependency_parsing/checkpoint/checkpoint
 *.npy
+*.dict
