@@ -1,0 +1,14 @@
+
+*.cvt
+*.single
+*.dev
+*.new
+*.train
+*.data-00000-of-00001
+*.index
+results/dependency_parsing/checkpoint/best/checkpoint
+*.meta
+*.comput1
+*.eval0
+results/dependency_parsing/checkpoint/checkpoint
+*.npy
