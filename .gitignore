@@ -13,3 +13,5 @@ results/dependency_parsing/checkpoint/best/checkpoint
 results/dependency_parsing/checkpoint/checkpoint
 *.npy
 *.dict
+data/embedding/glove.840B.300d.zip
+data/embedding/glove.840B.300d.txt

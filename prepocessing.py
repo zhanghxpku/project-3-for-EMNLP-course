@@ -53,7 +53,7 @@ def main():
                         line = line.split()
                         for word in line:
                             if 'mso:' in word:
-                                relation.add(word)
+                                relation.add(word.split('mso:')[-1])
         fout1.close()
         fout2.close()
 
@@ -126,8 +126,8 @@ def main():
                         line = line.split()
                         for word in line:
                             if 'mso:' in word:
-                                relation.add(word)
-                                sents.append(word)
+                                relation.add(word.split('mso:')[-1])
+                                sents.append(word.split('mso:')[-1])
                     # entity
                     elif line.startswith('<parameters'):
                         line = line.split('\t')[1]
@@ -147,7 +147,6 @@ def main():
         fout1.close()
         fout2.close()
     print('max_len in training set:', max_len)
-    
     
     trigrams = set()
     for word in words:
@@ -189,8 +188,8 @@ def main():
                         line = line.split()
                         for word in line:
                             if 'mso:' in word:
-                                relation.add(word)
-                                sents.append(word)
+                                relation.add(word.split('mso:')[-1])
+                                sents.append(word.split('mso:')[-1])
                     # entity
                     elif line.startswith('<parameters'):
                         line = line.split('\t')[1]
@@ -230,6 +229,9 @@ def main():
     word2tri = {}
     for idx, g in enumerate(trigrams):
         word2tri[g] = idx
+    word2id = {}
+    for idx, w in enumerate(words):
+        word2id[w] = idx
     
     max_len = 0
     for word in words:
@@ -266,9 +268,14 @@ def main():
     print('max_len for relation:', max_len)
     print('max_char for relation:', max_char)
     relation2grams = np.zeros([len(relation), max_len, max_char], dtype=np.int32)
+    relation2words = np.zeros([len(relation), max_len], dtype=np.int32)
     for idx, r in enumerate(relation):
         r = tokenize(r).split()
         for j, w in enumerate(r):
+            if w in word2id:
+                relation2words[idx, j] = word2id[w] + 2
+            else:
+                relation2words[idx, j] = 1
             w = '#' + w + '#'
             for i in range(len(w) - 2):
                 if w[i:i+3] in trigrams:
@@ -276,9 +283,27 @@ def main():
                 else:
                     relation2grams[idx, j, i] = 1
     np.save('relation2grams', relation2grams)
+    np.save('relation2words', relation2words)
     
     
+    words_emb = set()
+    fout = open('embedding.300d', 'w', encoding='utf-8')
+    with open('data/embedding/glove.840B.300d.txt', encoding='utf-8') as fin:
+        for line in fin:
+            line = line.strip()
+            if line.split('\t')[0] in words:
+                words_emb.add(line.split('\t')[0])
+                fout.write(line)
+                fout.write('\n')
+    fout.close()
     
+    print('number of found words:', len(words_emb))
+    words = sorted(words)
+    fout = open('word.dict.emb', 'w', encoding='utf-8')
+    fout.write('<PAD>\n<UNK>\n')
+    for r in words_emb:
+        fout.write(r+'\n')
+    fout.close()
     
     
     

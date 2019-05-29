@@ -89,11 +89,11 @@ predict_dataset: &predict_dataset
 
 # Model config
 model:
-    model_name: DependencyModel
+    model_name: LSTMDependencyModel
     
     # Data
-#    use_word_pretrain_emb: True
-#    word_emb_finetune: False
+    use_word_pretrain_emb: False
+    word_emb_finetune: True
     word2vec_dict: 'word2grams.dict'
     relation2grams: 'relation2grams.npy'
     relation2words: 'relation2words.npy'
@@ -109,6 +109,7 @@ model:
     # Network
     region_radius: 1
     emb_size: 500
+    hidden_size: 500
     semantic_size: 500
     dropout_rate: 0.3
     negative_samples: 1560
