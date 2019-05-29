@@ -81,9 +81,9 @@ class DependencyModel(model_base.ModelBase):
 #            self.loss_op = tf.reduce_sum(prob)
 #        else:
         labels_one_hot = tf.one_hot(tags, config.relation_size)
-        self.loss_op = tf.nn.softmax_cross_entropy_with_logits_v2(
+        self.loss_op = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(
                         labels=labels_one_hot,
-                        logits=score)
+                        logits=score))
 
         self.infer_op = tf.argmax(score, -1)
         metric_layer = layers.EMMetricLayer()

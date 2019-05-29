@@ -88,13 +88,14 @@ def main():
     print('number of relations: ', len(relation))
     relation = sorted(relation)
     fout = open('relation.dict', 'w', encoding='utf-8')
-    fout.write('<PAD>\n<UNK>\n')
+#    fout.write('<PAD>\n<UNK>\n')
     for r in relation:
         fout.write(r+'\n')
     fout.close()
     
     # process single-relation
     words = set()
+    relation = set()
     max_len = 0
     max_len_entity = 0
     train_dataset = ['data/EMNLP.train.single']
@@ -109,14 +110,15 @@ def main():
                 if line.startswith('=='):
                     total_line += 1
                     fout.write('\t'.join(sents)+'\n')
-                    for item in [sents[0], sents[2]]:
+                    for item in [sents[1], sents[3]]:
                         for word in item.split():
                             words.add(word)
-                    max_len_entity = max_len_entity if max_len_entity > len(sents[2].split()) else len(sents[2].split())
+                    max_len_entity = max_len_entity if max_len_entity > len(sents[3].split()) else len(sents[3].split())
                     sents = []
                 else:
                     # question
                     if line.startswith('<question id'):
+                        sents.append(line.split('\t')[0].split('=')[-1][:-1])
                         sents.append(tokenize(line.split('\t')[1]))
                     #relation
                     elif line.startswith('<logical'):
@@ -124,6 +126,7 @@ def main():
                         line = line.split()
                         for word in line:
                             if 'mso:' in word:
+                                relation.add(word)
                                 sents.append(word)
                     # entity
                     elif line.startswith('<parameters'):
@@ -134,12 +137,12 @@ def main():
                         sents.append(tokenize(line[0]))
                         # location of entity
                         loc = line[-1][1:-1].split(',')
-                        question = sents[0].split()
+                        question = sents[1].split()
                         question_new = question[:int(loc[0])]
                         question_new.extend(['@'])
                         question_new.extend(question[int(loc[1])+1:])
                         max_len = max_len if max_len > len(question_new) else len(question_new)
-                        sents[0] = ' '.join(question_new)
+                        sents[1] = ' '.join(question_new)
                         
         fout1.close()
         fout2.close()
@@ -170,14 +173,15 @@ def main():
                 if line.startswith('=='):
                     total_line += 1
                     fout.write('\t'.join(sents)+'\n')
-                    for item in [sents[0], sents[2]]:
+                    for item in [sents[1], sents[3]]:
                         for word in item.split():
                             words.add(word)
-                    max_len_entity = max_len_entity if max_len_entity > len(sents[2].split()) else len(sents[2].split())
+                    max_len_entity = max_len_entity if max_len_entity > len(sents[3].split()) else len(sents[3].split())
                     sents = []
                 else:
                     # question
                     if line.startswith('<question id'):
+                        sents.append(line.split('\t')[0].split('=')[-1][:-1])
                         sents.append(tokenize(line.split('\t')[1]))
                     # relation
                     elif line.startswith('<logical'):
@@ -185,6 +189,7 @@ def main():
                         line = line.split()
                         for word in line:
                             if 'mso:' in word:
+                                relation.add(word)
                                 sents.append(word)
                     # entity
                     elif line.startswith('<parameters'):
@@ -195,16 +200,24 @@ def main():
                         sents.append(tokenize(line[0]))
                         # location of entity
                         loc = line[-1][1:-1].split(',')
-                        question = sents[0].split()
+                        question = sents[1].split()
                         question_new = question[:int(loc[0])]
                         question_new.extend(['@'])
                         question_new.extend(question[int(loc[1])+1:])
                         max_len = max_len if max_len > len(question_new) else len(question_new)
-                        sents[0] = ' '.join(question_new)
-                        
+                        sents[1] = ' '.join(question_new)
+
         fout1.close()
         fout2.close()
     print('max_len in all sets:', max_len)
+    
+    print('number of relations in all sets:', len(relation))
+    relation = sorted(relation)
+    fout = open('relation.single.dict', 'w', encoding='utf-8')
+#    fout.write('<PAD>\n<UNK>\n')
+    for r in relation:
+        fout.write(r+'\n')
+    fout.close()
     
     print('number of all words:', len(words))
     words = sorted(words)
@@ -252,16 +265,16 @@ def main():
     
     print('max_len for relation:', max_len)
     print('max_char for relation:', max_char)
-    relation2grams = np.zeros([len(relation)+2, max_len, max_char], dtype=np.int32)
+    relation2grams = np.zeros([len(relation), max_len, max_char], dtype=np.int32)
     for idx, r in enumerate(relation):
         r = tokenize(r).split()
         for j, w in enumerate(r):
             w = '#' + w + '#'
             for i in range(len(w) - 2):
                 if w[i:i+3] in trigrams:
-                    relation2grams[idx+2, j, i] = word2tri[w[i:i+3]] + 2
+                    relation2grams[idx, j, i] = word2tri[w[i:i+3]] + 2
                 else:
-                    relation2grams[idx+2, j, i] = 1
+                    relation2grams[idx, j, i] = 1
     np.save('relation2grams', relation2grams)
     
     
