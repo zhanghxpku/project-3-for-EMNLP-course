@@ -26,9 +26,11 @@ class DependencyModel(model_base.ModelBase):
         
         # Layers
         trigram_emb_encoder = layers.TrigramEmbeddingEncoder(config.trigram_size, config.emb_size, config.region_radius, trainable=False, name='trigrams')
+        kernel_initializer = tf.initializers.random_uniform(-tf.math.sqrt(6/(config.emb_size+config.semantic_size)),tf.math.sqrt(6/(config.emb_size+config.semantic_size)))
         semantic_proj = tf.layers.Dense(config.semantic_size, name='semantic_proj',
                                         activation = tf.nn.tanh,
-                                        use_bias = False)
+                                        use_bias = False,
+                                        kernel_initializer=kernel_initializer)
         
         tags = inputs['relation']
         tag_emb = self.relation_emb_layer

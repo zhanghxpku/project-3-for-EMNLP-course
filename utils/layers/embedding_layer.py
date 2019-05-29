@@ -71,6 +71,8 @@ class TrigramEmbeddingLayer(Layer):
                  initializer=None, **kwargs):
         Layer.__init__(self, name, **kwargs)
         self._emb_size = emb_size
+        if initializer is None:
+            initializer = tf.initializers.random_uniform(-tf.math.sqrt(6/(trigram_size+emb_size)),tf.math.sqrt(6/(trigram_size+emb_size)))
         self._W = tf.get_variable(name + '_W', shape=[trigram_size - 1, emb_size],
                                   initializer=initializer,
                                   trainable=trainable)

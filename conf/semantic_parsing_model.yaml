@@ -120,7 +120,7 @@ model:
     use_clip_by_norm: True
     decay_step: 270
     decay_rate: 1.0
-    metric: EMMetric
+#    metric: EMMetric
 
 # Estimator
 estimator:
@@ -130,7 +130,7 @@ estimator:
         # - *train_dataset
         - *dev_dataset
         # - *test_dataset
-    eval_to_file: False
+    eval_to_file: True
     eval_op_path: results/semantic_parsing/eval.output
     # infer_dataset: *predict_dataset
     # infer_op_path: results/semantic_parsing/infer.output
