@@ -8,7 +8,7 @@ default_dataset: &default_dataset
     shuffle: False
     map_tables:
         word2id:
-            path: word.dict
+            path: word.dict.emb
         relation2id: 
             path: relation.single.dict
 
@@ -94,7 +94,7 @@ model:
     # Data
     use_word_pretrain_emb: False
     word_emb_finetune: True
-    word2vec_dict: 'word2grams.dict'
+    word2vec_dict: 'embedding.300'
     relation2grams: 'relation2grams.npy'
     relation2words: 'relation2words.npy'
     max_length: 46
@@ -140,8 +140,8 @@ estimator:
     batch_size: 100
     max_epochs: 40
 
-    word2id: word.dict
-    relation2id: relation.dict
+    word2id: word.dict.emb
+    relation2id: relation.single.dict
     checkpoint_dir: results/semantic_parsing/checkpoint
 
     model_name: semantic_parsing_model

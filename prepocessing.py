@@ -289,10 +289,12 @@ def main():
     words_emb = set()
     fout = open('embedding.300d', 'w', encoding='utf-8')
     with open('data/embedding/glove.840B.300d.txt', encoding='utf-8') as fin:
-        for line in fin:
+        for idx, line in enumerate(fin):
+            if idx % 100000 == 0:
+                print(idx,'finished')
             line = line.strip()
-            if line.split('\t')[0] in words:
-                words_emb.add(line.split('\t')[0])
+            if line.split()[0] in words:
+                words_emb.add(line.split()[0])
                 fout.write(line)
                 fout.write('\n')
     fout.close()

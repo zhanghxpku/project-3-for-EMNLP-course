@@ -140,7 +140,7 @@ estimator:
     max_epochs: 40
 
     word2id: word.dict
-    relation2id: relation.dict
+    relation2id: relation.single.dict
     checkpoint_dir: results/semantic_parsing/checkpoint
 
     model_name: semantic_parsing_model
