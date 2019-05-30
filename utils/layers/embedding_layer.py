@@ -20,8 +20,8 @@ class EmbeddingLayer(Layer):
         self._W = self.get_variable(name + '_W', shape=[vocab_size, emb_size],
                                     initializer=initializer, trainable=trainable)
 
-    def _forward(self, seq, zero_foward=False):
-        if zero_foward:
+    def _forward(self, seq, zero_forward=False):
+        if zero_forward:
             seq_mask = tf.cast(tf.stack([tf.sign(seq)] * self._emb_size, axis=-1), tf.float32)
             emb = tf.nn.embedding_lookup(self._W, seq)
             emb = emb * seq_mask
@@ -58,9 +58,9 @@ class InitializedEmbeddingLayer(Layer):
         else:
             self._W = tf.constant(embedding, dtype=tf.float32)
 
-    def _forward(self, seq, zero_foward=False):
-        if zero_foward:
-            W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W[1:, :]), 0)
+    def _forward(self, seq, zero_forward=False):
+        if zero_forward:
+            W = tf.concat((tf.zeros(shape=[2, self._emb_size]), self._W[2:, :]), 0)
             return tf.nn.embedding_lookup(W, seq)
         else:
             return tf.nn.embedding_lookup(self._W, seq)
@@ -91,7 +91,7 @@ class TrigramEmbeddingEncoder(Layer):
         self._paddings = tf.constant([[0, 0], [region_radius, region_radius], [0, 0]])
         self._trigram_emb_layer = []
         for i in range(2 * region_radius + 1):
-            self._trigram_emb_layer.append(TrigramEmbeddingLayer(trigram_size, emb_size, name='trigram_emb_' + str(i)))
+            self._trigram_emb_layer.append(TrigramEmbeddingLayer(trigram_size, emb_size, name=name+'_trigram_emb_' + str(i)))
         
     def _forward(self, seq):
         h = []

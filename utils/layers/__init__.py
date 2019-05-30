@@ -16,3 +16,9 @@ from utils.layers.metric_layer import DefaultClassificationMetricLayer
 from utils.layers.metric_layer import MultiClassificationMetricLayer
 from utils.layers.metric_layer import DefaultLossMetricLayer
 from utils.layers.metric_layer import EMMetricLayer
+
+from utils.layers.functions_layer import masked_softmax
+
+from utils.layers.attention_layer import AttentionLayer
+from utils.layers.attention_layer import SymAttentionLayer
+from utils.layers.attention_layer import MultiHeadsDotProductAttentionLayer

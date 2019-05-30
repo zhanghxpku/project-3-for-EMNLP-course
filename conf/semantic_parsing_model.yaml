@@ -9,6 +9,8 @@ default_dataset: &default_dataset
     map_tables:
         word2id:
             path: word.dict
+        word2id_emb:
+            path: word.dict.emb
         relation2id: 
             path: relation.single.dict
 
@@ -17,13 +19,16 @@ default_dataset: &default_dataset
             index: 0
             type: value
             value_type: int32
-        word: &default_slot
+        word_raw: &default_slot
             index: 1
             type: sequence
             delim: " "
             map_table: word2id
             max_length: 46
             pad: 0
+        word:
+            map_table: word2id_emb
+            << : *default_slot
         relation:
             index: 2
             type: value
@@ -92,35 +97,41 @@ model:
     model_name: DependencyModel
     
     # Data
-#    use_word_pretrain_emb: True
-#    word_emb_finetune: False
+    use_word_pretrain_emb: True
+    word_emb_finetune: True
     word2vec_dict: 'word2grams.dict'
+    word2vec_emb: 'embedding.300d'
     relation2grams: 'relation2grams.npy'
-#    relation2words: 'relation2words.npy'
+    relation2words: 'relation2words_emb.npy'
     max_length: 46
     max_char: 31
     
     vocab_size: 18271
+    vocab_size_emb: 15456
     trigram_size: 7888
     relation_size: 1213
     relation_max_char: 17
     relation_max_len: 12
     
     # Network
-    region_radius: 1
+    use_lstm: False
+    use_entity: True
+    region_radius: 3
     emb_size: 500
+    word_emb_size: 300
+    hidden_size: 500
     semantic_size: 500
     dropout_rate: 0.2
     negative_samples: 100
     gamma: 5
     
     # Training
-    batch_size: 200
+    batch_size: 100
     optimizer: Adam
     learning_rate: 0.02
     use_clip_by_norm: True
     decay_step: 270
-    decay_rate: 0.9
+    decay_rate: 0.95
 
 # Estimator
 estimator:
@@ -135,7 +146,7 @@ estimator:
     # infer_dataset: *predict_dataset
     # infer_op_path: results/semantic_parsing/infer.output
 
-    batch_size: 200
+    batch_size: 100
     max_epochs: 40
 
     word2id: word.dict
