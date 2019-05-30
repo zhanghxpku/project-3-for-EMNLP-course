@@ -96,16 +96,18 @@ predict_dataset: &predict_dataset
 model:
     model_name: DependencyModel
     
-    # Data
+    # Pretrained Embedding
     use_word_pretrain_emb: True
     word_emb_finetune: True
     word2vec_dict: 'word2grams.dict'
     word2vec_emb: 'embedding.300d'
     relation2grams: 'relation2grams.npy'
     relation2words: 'relation2words_emb.npy'
+    word_emb_size: 300
+    
+    # Data
     max_length: 46
     max_char: 31
-    
     vocab_size: 18271
     vocab_size_emb: 15456
     trigram_size: 7888
@@ -114,14 +116,14 @@ model:
     relation_max_len: 12
     
     # Network
-    use_lstm: False
-    use_entity: True
-    region_radius: 3
-    emb_size: 500
-    word_emb_size: 300
+    use_lstm: True
+    use_entity: False
+    layer_num: 0
+    region_radius: 1
+    emb_size: 1000
     hidden_size: 500
-    semantic_size: 500
-    dropout_rate: 0.2
+    semantic_size: 1000
+    dropout_rate: 0.1
     negative_samples: 100
     gamma: 5
     

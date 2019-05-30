@@ -265,7 +265,7 @@ class PythonEstimator(object):
                     if res['word'] is None:
                         break
                     idx = res['idx']
-                    word = map(lambda x: word2id.get(x, '<UNK>'), res['word'])
+                    word = map(lambda x: word2id.get(x, '<UNK>'), res['word_raw'])
                     entity = map(lambda x: word2id.get(x, '<UNK>'), res['entity'])
                     relation = map(lambda x: relation2id.get(x, '<UNK>'), [res['relation']])
                     pred = map(lambda x: relation2id.get(x, '<UNK>'), [res['pred']])

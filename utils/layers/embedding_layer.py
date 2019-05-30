@@ -78,7 +78,7 @@ class TrigramEmbeddingLayer(Layer):
     def _forward(self, seq):
         W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W), 0)
         trigram_emb = tf.nn.embedding_lookup(W, seq)
-        emb = tf.reduce_sum(trigram_emb, axis=2)
+        emb = tf.div_no_nan(tf.reduce_sum(trigram_emb, axis=2), tf.count_nonzero(trigram_emb, axis=2, dtype=tf.float32))
         return emb
 
 
