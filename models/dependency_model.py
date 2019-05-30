@@ -23,7 +23,7 @@ class DependencyModel(model_base.ModelBase):
     def build_graph(self, inputs, mode):
         config = self.config
         training = (mode == tf.estimator.ModeKeys.TRAIN)
-        
+
         # Layers
         trigram_emb_encoder = layers.TrigramEmbeddingEncoder(config.trigram_size, config.emb_size, config.region_radius, trainable=False, name='trigrams')
         semantic_proj = tf.layers.Dense(config.semantic_size, name='semantic_proj',
@@ -34,8 +34,11 @@ class DependencyModel(model_base.ModelBase):
         tags = inputs['relation']
         tag_emb = self.relation_emb_layer
         
+        words = inputs['word']
+#        entity = inputs['entity']
+#        words = tf.concat([words,entity], axis=-1)
         # [batch_size, max_len, max_char]
-        word_emb = self.emb_layer(inputs['word'])
+        word_emb = self.emb_layer(words)
         
         # [batch_size, max_len, emb_size]
         h_word = trigram_emb_encoder(word_emb)
@@ -51,6 +54,106 @@ class DependencyModel(model_base.ModelBase):
         h_tag = trigram_emb_encoder(tag_emb)
 #        h_tag = tf.reshape(h_tag, [-1, config.relation_size, config.semantic_size])
         h_tag = tf.layers.dropout(h_tag, rate=config.dropout_rate, training=training)
+        h_tag = tf.reduce_max(h_tag, axis=1)
+        # [relation_size, semantic_size]
+        relation = tf.tanh(semantic_proj(h_tag))
+        
+        # [batch_size]
+        norm_p = tf.expand_dims(tf.norm(pattern, axis=-1), axis=-1)
+        pattern = tf.div_no_nan(pattern, norm_p)
+        # [relation_size]
+        norm_r = tf.expand_dims(tf.norm(relation, axis=-1), axis=-1)
+        relation = tf.div_no_nan(relation, norm_r)
+#        print 'pattern', pattern
+#        print 'relation', relation
+        # [batch_size, relation_size]
+        score = tf.matmul(pattern, relation, transpose_b=True) * config.gamma
+        
+        self.logits = score
+        self.logits_op = score
+        
+#        if training:
+#            prob = tf.nn.sampled_softmax_loss(
+#                            weights=tf.ones([tf.shape(score)[1],tf.shape(score)[1]]),
+#                            biases=tf.zeros(tf.shape(score)[1:]),
+#                            labels=tf.expand_dims(tags,axis=-1),
+#                            inputs=score,
+#                            num_sampled=config.negative_samples,
+#                            num_classes=config.relation_size,
+#                            partition_strategy='div')
+##            print 'prob', prob
+#            self.loss_op = tf.reduce_sum(prob)
+#        else:
+        labels_one_hot = tf.one_hot(tags, config.relation_size)
+        self.loss_op = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(
+                        labels=labels_one_hot,
+                        logits=score))
+
+        self.infer_op = tf.argmax(score, -1)
+        metric_layer = layers.EMMetricLayer()
+        self.metric = metric_layer(self.infer_op, tags)
+
+class NewDependencyModel(model_base.ModelBase):
+    """CNN Dependency Model"""
+    def __init__(self, config):
+        super(NewDependencyModel, self).__init__(config)
+        word2grams = tf.constant(np.load(config.word2grams))
+        self.word_emb_layer = tf.get_variable('word_emb', initializer=word2grams, trainable=False)
+        relation2words = tf.constant(np.load(config.relation2words))
+        self.relation_emb_layer = tf.get_variable('relation_emb', initializer=relation2words, trainable=False)
+    
+    def build_graph(self, inputs, mode):
+        config = self.config
+        training = (mode == tf.estimator.ModeKeys.TRAIN)
+        
+        # Layers
+        semantic_proj = tf.layers.Dense(config.semantic_size, name='semantic_proj',
+                                        activation = tf.nn.tanh,
+                                        use_bias = False,
+                                        kernel_initializer=tf.initializers.glorot_uniform())
+        
+        tags = inputs['relation']
+        tag_emb = self.relation_emb_layer
+        word_emb = inputs['word']
+        
+        trigram_proj = []
+        for i in range(2*config.region_radius+1):
+            trigram_proj.append(tf.get_variable('trigram_proj_'+str(i), initializer=tf.initializers.glorot_uniform(),
+                                                shape=[config.trigram_size, config.emb_size]))
+        
+        proj_word = []
+        for i in range(2*config.region_radius+1):
+            # [vocab_size, max_char, emb_size]
+            proj = tf.nn.embedding_lookup(trigram_proj[i], self.word_emb_layer)
+            # [vocab_size, emb_size]
+            proj = tf.reduce_sum(proj, axis=1)
+            proj_word.append(proj)
+        
+        paddings = tf.constant([[0, 0], [config.region_radius, config.region_radius]])
+        tag_pad = tf.cast(tf.pad(tag_emb, paddings, "CONSTANT"), dtype=tf.int32)
+        word_pad = tf.cast(tf.pad(word_emb, paddings, "CONSTANT"), dtype=tf.int32)
+        
+        h_word = []
+        word_max_len = tf.shape(word_emb)[1]
+        for i in range(2*config.region_radius+1):
+            # each item: [batch_size, max_len, emb_size]
+            temp = tf.nn.embedding_lookup(proj_word[i], word_pad[:,i:i+word_max_len])
+            temp = tf.layers.dropout(temp, rate=config.dropout_rate, training=training)
+            h_word.append(temp)
+        h_word = tf.tanh(tf.add_n(h_word))
+        # [batch_size, emb_size]
+        h_word = tf.reduce_max(h_word, axis=1)
+        # [batch_size, semantic_size]
+        pattern = tf.tanh(semantic_proj(h_word))
+
+        h_tag = []
+        tag_max_len = tf.shape(tag_emb)[1]
+        for i in range(2*config.region_radius+1):
+            # each item: [batch_size, max_len, emb_size]
+            temp = tf.nn.embedding_lookup(proj_word[i], tag_pad[:,i:i+tag_max_len])
+            temp = tf.layers.dropout(temp, rate=config.dropout_rate, training=training)
+            h_tag.append(temp)
+        h_tag = tf.tanh(tf.add_n(h_tag))
         h_tag = tf.reduce_max(h_tag, axis=1)
         # [relation_size, semantic_size]
         relation = tf.tanh(semantic_proj(h_tag))
@@ -115,12 +218,16 @@ class LSTMDependencyModel(model_base.ModelBase):
         
         # [batch_size, max_len, emb_size]
         word_emb = word_emb_layer(inputs['word'])
-        nwords = tf.count_nonzero(inputs['word'], axis=-1)
+        print 'word_emb', word_emb
+        nwords = tf.count_nonzero(inputs['word'], axis=-1, dtype=tf.int32)
+        print 'nwords', nwords
 
         tag_emb = self.relation_emb_layer
         # [relation_size, relation_max_len, emb_size]
+        nwords_tag = tf.count_nonzero(tag_emb, axis=-1, dtype=tf.int32)
+        print 'nwords_tag', nwords_tag
         tag_emb = word_emb_layer(tag_emb)
-        nwords_tag = tf.count_nonzero(tag_emb, axis=-1)
+        print 'tag_emb', tag_emb
 
         word_emb = tf.transpose(word_emb, perm=[1, 0, 2])
         tag_emb = tf.transpose(tag_emb, perm=[1, 0, 2])
@@ -187,21 +294,3 @@ class LSTMDependencyModel(model_base.ModelBase):
         self.infer_op = tf.argmax(score, -1)
         metric_layer = layers.EMMetricLayer()
         self.metric = metric_layer(self.infer_op, tags)
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        

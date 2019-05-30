@@ -96,7 +96,7 @@ model:
 #    word_emb_finetune: False
     word2vec_dict: 'word2grams.dict'
     relation2grams: 'relation2grams.npy'
-    relation2words: 'relation2words.npy'
+#    relation2words: 'relation2words.npy'
     max_length: 46
     max_char: 31
     
@@ -111,17 +111,16 @@ model:
     emb_size: 500
     semantic_size: 500
     dropout_rate: 0.3
-    negative_samples: 1560
+    negative_samples: 100
     gamma: 5
     
     # Training
     batch_size: 100
-    optimizer: SGD
-    learning_rate: 0.002
+    optimizer: Adam
+    learning_rate: 0.02
     use_clip_by_norm: True
     decay_step: 270
-    decay_rate: 1.0
-#    metric: EMMetric
+    decay_rate: 0.9
 
 # Estimator
 estimator:

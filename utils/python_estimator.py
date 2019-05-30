@@ -267,7 +267,7 @@ class PythonEstimator(object):
                     idx = res['idx']
                     word = map(lambda x: word2id.get(x, '<UNK>'), res['word'])
                     entity = map(lambda x: word2id.get(x, '<UNK>'), res['entity'])
-#                    relation = map(lambda x: relation2id.get(x, '<UNK>'), res['relation'])
+                    relation = map(lambda x: relation2id.get(x, '<UNK>'), [res['relation']])
                     pred = map(lambda x: relation2id.get(x, '<UNK>'), [res['pred']])
                     word_len = 0
                     entity_len = 0
@@ -279,7 +279,7 @@ class PythonEstimator(object):
                         if res['entity'][j] == 0:
                             entity_len = j
                             break
-                    fout.write('\n'.join([str(idx),' '.join(word[:word_len]),pred[0],' '.join(entity[:entity_len])])+'\n')
+                    fout.write('\n'.join([str(idx),' '.join(word[:word_len]),relation[0]+'\t'+pred[0],' '.join(entity[:entity_len])])+'\n')
 #                    fout.write('\n')
                 fout.close()
 

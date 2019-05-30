@@ -8,7 +8,7 @@ default_dataset: &default_dataset
     shuffle: False
     map_tables:
         word2id:
-            path: word.dict.emb
+            path: word.dict
         relation2id: 
             path: relation.single.dict
 
@@ -84,32 +84,32 @@ predict_dataset: &predict_dataset
     << : *pred_dataset
 
 # logging:
-#     file: results/lstm_semantic_parsing/logging.out
+#     file: results/new_semantic_parsing/logging.out
 #     level: 3
 
 # Model config
 model:
-    model_name: LSTMDependencyModel
+    model_name: NewDependencyModel
     
     # Data
-    use_word_pretrain_emb: False
-    word_emb_finetune: True
-    word2vec_dict: 'embedding.300'
+#    use_word_pretrain_emb: True
+#    word_emb_finetune: False
+#    word2vec_dict: 'word2grams.dict'
+    word2grams: 'word2grams.npy'
 #    relation2grams: 'relation2grams.npy'
-    relation2words: 'relation2words_emb.npy'
+    relation2words: 'relation2words.npy'
     max_length: 46
     max_char: 31
     
-    vocab_size: 15456
-#    trigram_size: 7888
+    vocab_size: 18271
+    trigram_size: 7888
     relation_size: 1213
-#    relation_max_char: 17
+    relation_max_char: 17
     relation_max_len: 12
     
     # Network
-#    region_radius: 1
-    emb_size: 300
-    hidden_size: 500
+    region_radius: 1
+    emb_size: 500
     semantic_size: 500
     dropout_rate: 0.3
     negative_samples: 1213
@@ -133,16 +133,16 @@ estimator:
         - *dev_dataset
         # - *test_dataset
     eval_to_file: True
-    eval_op_path: results/lstm_semantic_parsing/eval.output
+    eval_op_path: results/new_semantic_parsing/eval.output
     # infer_dataset: *predict_dataset
-    # infer_op_path: results/lstm_semantic_parsing/infer.output
+    # infer_op_path: results/new_semantic_parsing/infer.output
 
     batch_size: 100
     max_epochs: 40
 
-    word2id: word.dict.emb
+    word2id: word.dict
     relation2id: relation.single.dict
-    checkpoint_dir: results/lstm_semantic_parsing/checkpoint
+    checkpoint_dir: results/new_semantic_parsing/checkpoint
 
     model_name: semantic_parsing_model
     # save_checkpoints_steps: 2000

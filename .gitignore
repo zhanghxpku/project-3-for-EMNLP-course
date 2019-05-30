@@ -15,6 +15,5 @@ results/dependency_parsing/checkpoint/checkpoint
 *.dict
 data/embedding/glove.840B.300d.zip
 data/embedding/glove.840B.300d.txt
-embedding.300d
 word.dict.emb
-embedding.300d
+*.300d
