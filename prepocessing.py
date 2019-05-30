@@ -296,34 +296,38 @@ def main():
     np.save('relation2words', relation2words)
     
     
-#    words_emb = set()
-#    fout = open('embedding.300d', 'w', encoding='utf-8')
-#    fout.write((str(0.0) + ' ')*300 + '\n' + (str(0.0) + ' ')*300 + '\n')
-#    with open('data/embedding/glove.840B.300d.txt', encoding='utf-8') as fin:
-#        for idx, line in enumerate(fin):
-#            if idx % 100000 == 0:
-#                print(idx,'finished')
-#            line = line.strip()
-#            if line.split()[0] in words:
-#                words_emb.add(line.split()[0])
-#                fout.write(' '.join(line.split()[1:]))
-#                fout.write('\n')
-#    fout.close()
-#    
-#    print('number of found words:', len(words_emb))
-#    words_emb = sorted(words_emb)
-#    fout = open('word.dict.emb', 'w', encoding='utf-8')
-#    fout.write('<PAD>\n<UNK>\n')
-#    for r in words_emb:
-#        fout.write(r+'\n')
-#    fout.close()
-    
     words_emb = set()
-    with open('word.dict.emb', encoding='utf-8') as fin:
-        for line in fin:
+    word2idx_emb = {}
+    
+    with open('data/embedding/glove.840B.300d.txt', encoding='utf-8') as fin:
+        for idx, line in enumerate(fin):
+            if idx % 100000 == 0:
+                print(idx,'finished')
             line = line.strip()
-            if line != '<PAD>' and line != '<UNK>':
-                words_emb.add(line)
+            if line.split()[0] in words:
+                words_emb.add(line.split()[0])
+                word2idx_emb[line.split()[0]] = ' '.join(line.split()[-300:])
+    
+    
+    print('number of found words:', len(words_emb))
+    words_emb = sorted(words_emb)
+    fout = open('word.dict.emb', 'w', encoding='utf-8')
+    fout.write('<PAD>\n<UNK>\n')
+    for r in words_emb:
+        fout.write(r+'\n')
+    fout.close()
+    
+    fout = open('embedding.300d', 'w', encoding='utf-8')
+    fout.write((str(0.0) + ' ')*300 + '\n' + (str(0.0) + ' ')*300 + '\n')
+    for r in words_emb:
+        fout.write(word2idx_emb[r]+'\n')
+    fout.close()
+#    words_emb = set()
+#    with open('word.dict.emb', encoding='utf-8') as fin:
+#        for line in fin:
+#            line = line.strip()
+#            if line != '<PAD>' and line != '<UNK>':
+#                words_emb.add(line)
     
     word2id_emb = {}
     for idx, w in enumerate(words_emb):

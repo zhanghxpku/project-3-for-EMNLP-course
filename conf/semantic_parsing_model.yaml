@@ -5,7 +5,7 @@ default_dataset: &default_dataset
     type: PythonDataset
     delim: "\t"
     buffer_size: 40000
-    shuffle: False
+    shuffle: True
     map_tables:
         word2id:
             path: word.dict
@@ -110,12 +110,12 @@ model:
     region_radius: 1
     emb_size: 500
     semantic_size: 500
-    dropout_rate: 0.3
+    dropout_rate: 0.2
     negative_samples: 100
     gamma: 5
     
     # Training
-    batch_size: 100
+    batch_size: 200
     optimizer: Adam
     learning_rate: 0.02
     use_clip_by_norm: True
@@ -135,7 +135,7 @@ estimator:
     # infer_dataset: *predict_dataset
     # infer_op_path: results/semantic_parsing/infer.output
 
-    batch_size: 100
+    batch_size: 200
     max_epochs: 40
 
     word2id: word.dict

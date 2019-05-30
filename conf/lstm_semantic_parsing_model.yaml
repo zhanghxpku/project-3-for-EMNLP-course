@@ -94,7 +94,7 @@ model:
     # Data
     use_word_pretrain_emb: False
     word_emb_finetune: True
-    word2vec_dict: 'embedding.300'
+    word2vec_dict: 'embedding.300d'
 #    relation2grams: 'relation2grams.npy'
     relation2words: 'relation2words_emb.npy'
     max_length: 46
@@ -117,11 +117,11 @@ model:
     
     # Training
     batch_size: 100
-    optimizer: SGD
-    learning_rate: 0.002
+    optimizer: Adam
+    learning_rate: 0.02
     use_clip_by_norm: True
     decay_step: 270
-    decay_rate: 1.0
+    decay_rate: 0.9
 #    metric: EMMetric
 
 # Estimator
