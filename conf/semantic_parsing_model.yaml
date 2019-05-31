@@ -10,23 +10,23 @@ default_dataset: &default_dataset
         word2id:
             path: word.dict
         word2id_emb:
-            path: word.dict.emb
+            path: word_emb.dict
         relation2id: 
-            path: relation.single.dict
+            path: relation.dict
 
     slots: 
         idx:
             index: 0
             type: value
             value_type: int32
-        word_raw: &default_slot
+        word: &default_slot
             index: 1
             type: sequence
             delim: " "
             map_table: word2id
             max_length: 46
             pad: 0
-        word:
+        word_emb:
             map_table: word2id_emb
             << : *default_slot
         relation:
@@ -46,7 +46,12 @@ pred_dataset: &pred_dataset
     buffer_size: 40000
     shuffle: True
     map_tables:
-        path: word2.dict
+        word2id:
+            path: word.dict
+        word2id_emb:
+            path: word_emb.dict
+        relation2id: 
+            path: relation.dict
 
     slots: 
         idx:
@@ -96,31 +101,39 @@ predict_dataset: &predict_dataset
 model:
     model_name: DependencyModel
     
-    # Pretrained Embedding
+    # Word-level encoder
     use_word_pretrain_emb: True
     word_emb_finetune: True
-    word2vec_dict: 'word2grams.dict'
     word2vec_emb: 'embedding.300d'
-    relation2grams: 'relation2grams.npy'
-    relation2words: 'relation2words_emb.npy'
+    word2char_emb: 'word2char_emb.npy'
+    word2gram_emb: 'word2gram_emb.npy'
+    relation2word_emb: 'relation2word_emb.npy'
     word_emb_size: 300
     
+    
+    # Char-level encoder
+    char_size: 144
+    trigram_size: 5356
+    word2char: 'word2char.npy'
+    word2gram: 'word2gram.npy'
+    relation2char: 'relation2char.npy'
+    relation2gram: 'relation2gram.npy'
+    relation2word: 'relation2word.npy'
+    region_radius: 1
+    char_emb_size: 1000
+    
     # Data
-    max_length: 46
+    max_length: 60
     max_char: 31
     vocab_size: 18271
     vocab_size_emb: 15456
-    trigram_size: 7888
+    
     relation_size: 1213
     relation_max_char: 17
     relation_max_len: 12
     
     # Network
-    use_lstm: True
-    use_entity: False
     layer_num: 0
-    region_radius: 1
-    emb_size: 1000
     hidden_size: 500
     semantic_size: 1000
     dropout_rate: 0.1
@@ -152,8 +165,8 @@ estimator:
     max_epochs: 40
 
     word2id: word.dict
-    word2id_emb: word.dict.emb
-    relation2id: relation.single.dict
+    word2id_emb: word_emb.dict
+    relation2id: relation.dict
     checkpoint_dir: results/semantic_parsing/checkpoint
 
     model_name: semantic_parsing_model

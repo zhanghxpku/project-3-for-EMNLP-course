@@ -59,7 +59,6 @@ def main():
     # Create Model
     model_map = {
         'DependencyModel': models.DependencyModel,
-        'NewDependencyModel': models.NewDependencyModel,
         'LSTMDependencyModel': models.LSTMDependencyModel,
     }
 
