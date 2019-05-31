@@ -126,14 +126,14 @@ class DependencyModel(model_base.ModelBase):
 #        else:
             # [batch_size, emb_size]
         h_word = tf.reduce_max(h_word - word_mask*tf.ones(shape=tf.shape(h_word))*1000, axis=1)
+        if config.use_lstm:
+            pattern_word = tf.div_no_nan(tf.reduce_sum(h_word_emb, axis=1), tf.count_nonzero(h_word_emb, axis=1, dtype=tf.float32))
+            h_word = tf.concat([h_word, pattern_word],axis=-1)
         # [batch_size, semantic_size]
         for i in range(config.layer_num):
             h_word = dense_layers[i](h_word)
             h_word = tf.layers.dropout(h_word, rate=config.dropout_rate, training=training)
         pattern = semantic_proj(h_word)
-        if config.use_lstm:
-            pattern_word = tf.div_no_nan(tf.reduce_sum(h_word_emb, axis=1), tf.count_nonzero(h_word_emb, axis=1, dtype=tf.float32))
-            pattern = tf.concat([pattern, pattern_word],axis=-1)
         
         # [relation_size, relation_max_len, emb_size]
 #        tag_emb = tf.reshape(tag_emb, [-1, config.relation_max_len, config.relation_max_char])
@@ -144,14 +144,14 @@ class DependencyModel(model_base.ModelBase):
 #            h_tag = tf.concat([h_tag,h_tag_emb],axis=-1)
         tag_mask = tf.tile(tf.expand_dims(tf.cast(tf.equal(tf.reduce_sum(tag_emb,axis=-1), 0), dtype=tf.float32), axis=-1), [1,1,config.emb_size])
         h_tag = tf.reduce_max(h_tag - tag_mask*tf.ones(shape=tf.shape(h_tag))*1000, axis=1)
+        if config.use_lstm:
+            relation_word = tf.div_no_nan(tf.reduce_sum(h_tag_emb, axis=1), tf.count_nonzero(h_tag_emb, axis=1, dtype=tf.float32))
+            h_tag = tf.concat([h_tag, relation_word],axis=-1)
         for i in range(config.layer_num):
             h_tag = dense_layers[i](h_tag)
             h_tag = tf.layers.dropout(h_tag, rate=config.dropout_rate, training=training)
         # [relation_size, semantic_size]
         relation = semantic_proj(h_tag)
-        if config.use_lstm:
-            relation_word = tf.div_no_nan(tf.reduce_sum(h_tag_emb, axis=1), tf.count_nonzero(h_tag_emb, axis=1, dtype=tf.float32))
-            relation = tf.concat([relation, relation_word],axis=-1)
         
         # [batch_size]
         norm_p = tf.expand_dims(tf.norm(pattern, axis=-1), axis=-1)

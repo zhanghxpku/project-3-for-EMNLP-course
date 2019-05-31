@@ -209,7 +209,6 @@ def main():
         fout1.close()
         fout2.close()
     print('max_len in all sets:', max_len)
-    return 0
     
     print('number of relations in all sets:', len(relation))
     relation = sorted(relation)

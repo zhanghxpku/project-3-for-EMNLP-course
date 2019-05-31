@@ -152,6 +152,7 @@ estimator:
     max_epochs: 40
 
     word2id: word.dict
+    word2id_emb: word.dict.emb
     relation2id: relation.single.dict
     checkpoint_dir: results/semantic_parsing/checkpoint
 
