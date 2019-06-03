@@ -258,9 +258,9 @@ class PythonEstimator(object):
 #                print res['pred']
             if hasattr(self.config, 'eval_to_file') and self.config.eval_to_file:
                 word2id = {i : line.strip() for i, line in enumerate(open(self.config.word2id, 'r'))}
-                relation2id = {i : line.strip() for i, line in enumerate(open(self.config.relation2id, 'r'))}
+                relation2id = {i : line.strip() for i, line in enumerate(open(self.config.comb2id, 'r'))}
                 entity2id = {i : line.strip() for i, line in enumerate(open(self.config.entity2id, 'r'))}
-
+                
                 fout = open(self.config.eval_op_path+'.'+dataset_config.name, 'w')
                 for res in results:
                     if res['word'] is None:
@@ -268,14 +268,17 @@ class PythonEstimator(object):
                     idx = res['idx']
                     word = map(lambda x: word2id.get(x, '<UNK>'), res['word'])
                     relation = map(lambda x: relation2id.get(x, '<UNK>'), [res['relation']])
-                    entity = map(lambda x: entity2id.get(x, '<UNK>'), [res['entity']])
+                    entity = map(lambda x: entity2id.get(x, '<UNK>'), res['entity'])
                     pred = map(lambda x: relation2id.get(x, '<UNK>'), [res['pred']])
+                    typ = res['typ']
+                    entity = entity[0] if res['typ'] == 0 else ' '.join(entity)
                     word_len = 0
                     for i in range(len(word)):
                         if res['word'][i] == 0:
                             word_len = i
                             break
-                    fout.write('\n'.join([str(idx),' '.join(word[:word_len]),relation[0]+'\t'+pred[0],entity[0]+'\n']))
+#                    fout.write(str(res['relation'])+'\t'+str(res['pred']))
+                    fout.write('\n'.join([str(idx),' '.join(word[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
                 fout.close()
 
         if is_in_train:

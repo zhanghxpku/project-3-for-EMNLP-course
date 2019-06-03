@@ -22,6 +22,9 @@ class DependencyModel(model_base.ModelBase):
         relation2word_emb = tf.constant(np.load(config.relation2word_emb))
         self.relation2word_emb_layer = tf.get_variable('relation2word_emb', initializer=relation2word_emb,
                                                   trainable=False)
+        comb2relation = tf.constant(np.load(config.comb2relation))
+        self.comb2relation_layer = tf.get_variable('comb2relation', initializer=comb2relation,
+                                                  trainable=False)
 
         if config.encoder == 'trigram':
             word2gram_emb = tf.constant(np.load(config.word2gram))
@@ -62,6 +65,9 @@ class DependencyModel(model_base.ModelBase):
         patterns_emb = word_emb_layer(patterns_emb)
         relations_emb = self.relation2word_emb_layer
         relations_emb = word_emb_layer(relations_emb)
+        
+#        patterns_emb = tf.layers.dropout(patterns_emb, rate=config.dropout_rate, training=training)
+#        relations_emb = tf.layers.dropout(relations_emb, rate=config.dropout_rate, training=training)
 
         if config.use_rnn:
             h_pattern_word = tf.transpose(patterns_emb, perm=[1, 0, 2])
@@ -90,6 +96,9 @@ class DependencyModel(model_base.ModelBase):
         else:
             h_pattern_word = patterns_emb
             h_relation_word = relations_emb
+            
+        h_pattern_word = tf.layers.dropout(h_pattern_word, rate=config.dropout_rate, training=training)
+        h_relation_word = tf.layers.dropout(h_relation_word, rate=config.dropout_rate, training=training)
 
         if config.word_aggregation == 'max':
             emb_size = tf.shape(h_pattern_word)[-1]
@@ -156,6 +165,9 @@ class DependencyModel(model_base.ModelBase):
             h_relation_char = tf.concat([output_fw_relation_char, output_bw_relation_char], axis=-1)
             h_relation_char = tf.transpose(h_relation_char, perm=[1, 0, 2])
         
+        h_pattern_char = tf.layers.dropout(h_pattern_char, rate=config.dropout_rate, training=training)
+        h_relation_char = tf.layers.dropout(h_relation_char, rate=config.dropout_rate, training=training)
+        
         # Aggregation
         if config.aggregation == 'max':
             emb_size = tf.shape(h_pattern_char)[-1]
@@ -210,21 +222,31 @@ class DependencyModel(model_base.ModelBase):
             h_pattern = dense_layers[i](h_pattern)
             h_pattern = tf.layers.dropout(h_pattern, rate=config.dropout_rate, training=training)
         pattern = semantic_proj(h_pattern)
+        pattern = tf.layers.dropout(pattern, rate=config.dropout_rate, training=training)
         
         for i in range(config.layer_num):
             h_relation = dense_layers[i](h_relation)
             h_relation = tf.layers.dropout(h_relation, rate=config.dropout_rate, training=training)
         # [relation_size, semantic_size]
         relation = semantic_proj(h_relation)
+        relation = tf.layers.dropout(relation, rate=config.dropout_rate, training=training)
+        # [single_size+comb_size, 3, semantic_size]
+        relation_comb = tf.nn.embedding_lookup(relation, self.comb2relation_layer)
+        relation = tf.reduce_max(relation_comb, axis=1)
         
         # [batch_size]
         norm_p = tf.expand_dims(tf.norm(pattern, axis=-1), axis=-1)
         pattern = tf.div_no_nan(pattern, norm_p)
-        # [relation_size]
+        # [single_size+comb_size]
         norm_r = tf.expand_dims(tf.norm(relation, axis=-1), axis=-1)
         relation = tf.div_no_nan(relation, norm_r)
-        # [batch_size, relation_size]
+        # [batch_size, single_size+comb_size]
         score = tf.matmul(pattern, relation, transpose_b=True) * config.gamma
+        
+        single_mask = tf.concat([tf.zeros(shape=[config.single_size]),tf.ones(shape=[config.comb_size])], axis=0)
+        cvt_mask = tf.concat([tf.ones(shape=[config.single_size]),tf.zeros(shape=[config.comb_size])], axis=0)
+        mask = tf.nn.embedding_lookup(tf.stack([single_mask, cvt_mask]), inputs['typ'])
+        score = score - mask * 10000
 
         self.logits = score
         self.logits_op = score
@@ -242,7 +264,7 @@ class DependencyModel(model_base.ModelBase):
 ##            print 'prob', prob
 #            self.loss_op = tf.reduce_mean(prob)
 #        else:
-        labels_one_hot = tf.one_hot(tags, config.relation_size)
+        labels_one_hot = tf.one_hot(tags, config.single_size + config.comb_size)
         self.loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
                         labels=labels_one_hot,
                         logits=score))

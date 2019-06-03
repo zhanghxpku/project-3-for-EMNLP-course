@@ -12,9 +12,13 @@ default_dataset: &default_dataset
         word2id_emb:
             path: word_emb.dict
         relation2id: 
-            path: relation.single.dict
+            path: relation.dict
         entity2id: 
-            path: entity.single.dict
+            path: entity.dict
+        entity2id: 
+            path: entity.dict
+        comb2id: 
+            path: comb.dict
 
     slots: 
         idx:
@@ -26,20 +30,30 @@ default_dataset: &default_dataset
             type: sequence
             delim: " "
             map_table: word2id
-            max_length: 46
+            max_length: 56
             pad: 0
         word_emb:
             map_table: word2id_emb
             << : *default_slot
+#        relation:
+#            index: 2
+#            max_length: 3
+#            map_table: relation2id
+#            << : *default_slot
         relation:
             index: 2
             type: value
-            map_table: relation2id
+            map_table: comb2id
             << : *default_slot
         entity:
             index: 3
-            type: value
+            max_length: 2
             map_table: entity2id
+            << : *default_slot
+        typ:
+            index: 4
+            type: value
+            value_type: int32
 
 pred_dataset: &pred_dataset
     type: PythonDataset
@@ -76,23 +90,23 @@ pred_dataset: &pred_dataset
             map_table: entity2id
 
 train_dataset: &train_dataset
-    path: data/EMNLP.train.single.new
+    path: data/EMNLP.train.new
     << : *default_dataset
 
 dev_dataset: &dev_dataset
     shuffle: False
-    path: data/EMNLP.dev.single.new
+    path: data/EMNLP.dev.new
     << : *default_dataset
 
 test_dataset: &test_dataset
     shuffle: False
-    path: data/EMNLP.dev.single.new
+    path: data/EMNLP.dev.new
     << : *default_dataset
 
-predict_dataset: &predict_dataset
-    shuffle: False
-    path: data/EMNLP.test.single.new
-    << : *pred_dataset
+#predict_dataset: &predict_dataset
+#    shuffle: False
+#    path: data/EMNLP.test.new
+#    << : *pred_dataset
 
 # logging:
 #     file: results/semantic_parsing/logging.out
@@ -103,15 +117,17 @@ model:
     model_name: DependencyModel
     
     # Data
-    max_length: 60
+    max_length: 56
     max_char: 31
     relation_max_len: 12
     
     char_size: 144
-    trigram_size: 5356
-    vocab_size: 18382
-    vocab_size_emb: 15564
-    relation_size: 1229
+    trigram_size: 5606
+    vocab_size: 19720
+    vocab_size_emb: 16973
+    relation_size: 1562
+    comb_size: 436
+    single_size: 1229
 
     # Word-level encoder
     use_word_pretrain_emb: True
@@ -121,9 +137,9 @@ model:
     relation2word: 'relation2word.npy'
     relation2word_emb: 'relation2word_emb.npy'
     word_emb_size: 300
-    use_rnn: True
+    use_rnn: False
     hidden_size: 300
-    word_aggregation: end # max, mean, end (only for rnn), attention
+    word_aggregation: max # max, mean, end (only for rnn), attention
 
     # Char-level encoder
     word2char: 'word2char.npy'
@@ -145,18 +161,18 @@ model:
     
     # Projection to semantic space
     layer_num: 0
-    
     semantic_size: 500
-    dropout_rate: 0.1
+    dropout_rate: 0.0
     negative_samples: 100
     gamma: 5
+    comb2relation: 'comb2relation.npy'
     
     # Training
     batch_size: 100
     optimizer: Adam
     learning_rate: 0.02
     use_clip_by_norm: True
-    decay_step: 270
+    decay_step: 309
     decay_rate: 0.95
 
 # Estimator
@@ -177,8 +193,9 @@ estimator:
 
     word2id: word.dict
     word2id_emb: word_emb.dict
-    relation2id: relation.single.dict
-    entity2id: entity.single.dict
+    relation2id: relation.dict
+    comb2id: comb.dict
+    entity2id: entity.dict
     checkpoint_dir: results/semantic_parsing/checkpoint
 
     model_name: semantic_parsing_model
