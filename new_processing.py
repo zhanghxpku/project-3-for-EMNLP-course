@@ -93,6 +93,7 @@ def generate_tables():
     relation = set()
     chars = set(['@','#','&'])
     trigrams = set()
+    entity = set()
     max_len = 0
 #    max_len_entity = 0
     
@@ -135,6 +136,7 @@ def generate_tables():
                         line = line.split()
                         # entity
                         sents.append(line[0])
+                        entity.add(line[0])
 #                        sents.append(tokenize(line[0]))
 #                        max_len_entity = max_len_entity if max_len_entity > len(tokenize(line[0]).split()) else len(tokenize(line[0]).split())
                         # location of entity
@@ -183,6 +185,14 @@ def generate_tables():
 #    fout.write('<PAD>\n<UNK>\n')
     for r in relation:
         fout.write(r+'\n')
+    fout.close()
+    
+    print('number of entities all sets:', len(entity))
+    relation = sorted(entity)
+    fout = open('entity.single.dict', 'w', encoding='utf-8')
+#    fout.write('<PAD>\n<UNK>\n')
+    for e in entity:
+        fout.write(e+'\n')
     fout.close()
     
     print('number of all words:', len(words))
@@ -365,8 +375,8 @@ def main():
     seperate_relation()
     # process single relation
     words, chars, trigrams, relation = generate_tables()
-    build_maps(words, chars, trigrams, relation)
-    build_pretrained(words, chars, trigrams, relation, read_glove=True)
+#    build_maps(words, chars, trigrams, relation)
+#    build_pretrained(words, chars, trigrams, relation, read_glove=True)
 
     
 if '__main__' == __name__:

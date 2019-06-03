@@ -66,44 +66,6 @@ class InitializedEmbeddingLayer(Layer):
             return tf.nn.embedding_lookup(self._W, seq)
 
 
-class TrigramEmbeddingLayer(Layer):
-    def __init__(self, trigram_size, emb_size, trainable=True, name="tri_embedding",
-                 initializer=None, **kwargs):
-        Layer.__init__(self, name, **kwargs)
-        self._emb_size = emb_size
-        self._W = tf.get_variable(name + '_W', shape=[trigram_size - 1, emb_size],
-                                  initializer=tf.initializers.glorot_uniform(),
-                                  trainable=trainable)
-        
-    def _forward(self, seq):
-        W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W), 0)
-        trigram_emb = tf.nn.embedding_lookup(W, seq)
-        emb = tf.div_no_nan(tf.reduce_sum(trigram_emb, axis=2), tf.count_nonzero(trigram_emb, axis=2, dtype=tf.float32))
-        return emb
-
-
-class TrigramEmbeddingEncoder(Layer):
-    def __init__(self, trigram_size, emb_size, region_radius, trainable=True, name="tri_encoder",
-                 initializer=None, **kwargs):
-        Layer.__init__(self, name, **kwargs)
-        self._emb_size = emb_size
-        self._region_radius = region_radius
-        self._paddings = tf.constant([[0, 0], [region_radius, region_radius], [0, 0]])
-        self._trigram_emb_layer = []
-        for i in range(2 * region_radius + 1):
-            self._trigram_emb_layer.append(TrigramEmbeddingLayer(trigram_size, emb_size, name=name+'_trigram_emb_' + str(i)))
-        
-    def _forward(self, seq):
-        h = []
-        max_len = tf.shape(seq)[1]
-        paded_seq = tf.cast(tf.pad(seq, self._paddings, "CONSTANT"), dtype=tf.int32)
-        for i in range(2 * self._region_radius + 1):
-            # each item: [batch_size, max_len, emb_size]
-            h.append(self._trigram_emb_layer[i](paded_seq[:,i:i+max_len,:]))
-        h = tf.tanh(tf.add_n(h))
-        return h
-
-
 def main():
     """main"""
     pass
