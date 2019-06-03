@@ -168,7 +168,7 @@ model:
     # Projection to semantic space
     layer_num: 0
     semantic_size: 500
-    dropout_rate: 0.2
+    dropout_rate: 0.1
     negative_samples: 100
     gamma: 5
     comb2relation: 'comb2relation.npy'

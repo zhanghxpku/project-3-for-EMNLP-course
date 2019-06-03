@@ -394,15 +394,15 @@ def build_pretrained(words, chars, trigrams, relation, read_glove=True):
             fout.write(word2idx_emb[r]+'\n')
         fout.close()
     else:
-        words_emb = set()
         with open('word_emb.dict', encoding='utf-8') as fin:
             for line in fin:
                 line = line.strip()
                 if line != '<PAD>' and line != '<UNK>':
                     words_emb.add(line)
+        words_emb = sorted(words_emb)
 
     max_char = 0
-    for word in words:
+    for word in words_emb:
         max_char = max_char if max_char > len(word) else len(word)
     print('longest words:', max_char)
     
