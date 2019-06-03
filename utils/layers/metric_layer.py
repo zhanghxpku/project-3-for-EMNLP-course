@@ -66,9 +66,11 @@ class EMMetricLayer(Layer):
     def __init__(self, name='EMMetricLayer', **kwargs):
         Layer.__init__(self, name, **kwargs)
 
-    def _forward(self, pred, label, weights=None):
+    def _forward(self, pred, label, single_weights=None, cvt_weights=None):
         pred = tf.cast(pred, tf.int64)
         label = tf.cast(label, tf.int64)
-        em = tf.metrics.accuracy(labels=label, predictions=pred, weights=weights, name='acc_op')
-        metrics = {'em': em}
+        em = tf.metrics.accuracy(labels=label, predictions=pred, weights=None, name='acc_op')
+        single_em = tf.metrics.accuracy(labels=label, predictions=pred, weights=single_weights, name='single_acc_op')
+        cvt_em = tf.metrics.accuracy(labels=label, predictions=pred, weights=cvt_weights, name='cvt_acc_op')
+        metrics = {'em_single':single_em, 'em_cvt':cvt_em, 'em': em}
         return metrics

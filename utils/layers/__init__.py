@@ -10,6 +10,7 @@ from utils.layers.embedding_layer import InitializedEmbeddingLayer
 
 from utils.layers.char_encoding_layer import TrigramEmbeddingLayer
 from utils.layers.char_encoding_layer import TrigramEmbeddingEncoder
+from utils.layers.char_encoding_layer import CharEmbeddingEncoder
 
 from utils.layers.fc_layer import FCLayer
 from utils.layers.fc_layer import SeqFCLayer

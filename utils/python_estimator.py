@@ -262,6 +262,7 @@ class PythonEstimator(object):
                 entity2id = {i : line.strip() for i, line in enumerate(open(self.config.entity2id, 'r'))}
                 
                 fout = open(self.config.eval_op_path+'.'+dataset_config.name, 'w')
+                fout_err = open(self.config.eval_op_path+'.'+dataset_config.name+'.error', 'w')
                 for res in results:
                     if res['word'] is None:
                         break
@@ -277,9 +278,11 @@ class PythonEstimator(object):
                         if res['word'][i] == 0:
                             word_len = i
                             break
-#                    fout.write(str(res['relation'])+'\t'+str(res['pred']))
                     fout.write('\n'.join([str(idx),' '.join(word[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
+                    if res['relation'] != res['pred']:
+                        fout_err.write('\n'.join([str(idx),' '.join(word[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
                 fout.close()
+                fout_err.close()
 
         if is_in_train:
             self.reset_metric()

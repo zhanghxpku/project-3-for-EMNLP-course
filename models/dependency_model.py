@@ -129,6 +129,7 @@ class DependencyModel(model_base.ModelBase):
             h_relation_char = trigram_emb_encoder(self.relation2gram_emb_layer)
         elif config.encoder == 'CNN':
             char_emb_encoder = layers.CharEmbeddingEncoder(config.char_size, config.char_emb_size,
+                                                           region_radius=config.region_radius,
                                                            groups=config.groups,
                                                            filters=config.filters,
                                                            kernel_size=config.kernel_size,
@@ -230,6 +231,7 @@ class DependencyModel(model_base.ModelBase):
         # [relation_size, semantic_size]
         relation = semantic_proj(h_relation)
         relation = tf.layers.dropout(relation, rate=config.dropout_rate, training=training)
+        
         # [single_size+comb_size, 3, semantic_size]
         relation_comb = tf.nn.embedding_lookup(relation, self.comb2relation_layer)
         relation = tf.reduce_max(relation_comb, axis=1)
@@ -271,5 +273,5 @@ class DependencyModel(model_base.ModelBase):
 
         self.infer_op = tf.argmax(score, -1)
         metric_layer = layers.EMMetricLayer()
-        self.metric = metric_layer(self.infer_op, tags)
+        self.metric = metric_layer(self.infer_op, tags, single_weights=tf.cast(1-inputs['typ'],tf.float32), cvt_weights=tf.cast(inputs['typ'],tf.float32))
 

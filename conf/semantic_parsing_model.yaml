@@ -150,8 +150,14 @@ model:
     encoder: trigram # trigram or CNN
     region_radius: 1 # only for trigram
     groups: 1 # only for CNN
-    filters: 300 # only for CNN
-    kernel_size: 1 # only for CNN
+    filters: # only for CNN
+        - 50
+        - 50
+        - 50
+    kernel_size: # only for CNN
+        - 3
+        - 5
+        - 7
     use_rnn_char: False
     hidden_size_char: 300 # only for rnn
     aggregation: max # max, mean, attention
@@ -162,7 +168,7 @@ model:
     # Projection to semantic space
     layer_num: 0
     semantic_size: 500
-    dropout_rate: 0.0
+    dropout_rate: 0.2
     negative_samples: 100
     gamma: 5
     comb2relation: 'comb2relation.npy'
@@ -173,7 +179,7 @@ model:
     learning_rate: 0.02
     use_clip_by_norm: True
     decay_step: 309
-    decay_rate: 0.95
+    decay_rate: 0.9
 
 # Estimator
 estimator:

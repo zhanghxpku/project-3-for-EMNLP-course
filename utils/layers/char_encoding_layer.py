@@ -58,7 +58,6 @@ class CharEmbeddingEncoder(Layer):
     def __init__(self, char_size, emb_size, region_radius, groups, filters, kernel_size,
                  trainable=True, name="char_encoder", initializer=None, aggregation='mean', **kwargs):
         Layer.__init__(self, name, **kwargs)
-        assert groups == len(filters) and groups == len(kernel_size), 'length error'
         self._W = tf.get_variable(name + '_W', shape=[char_size - 1, emb_size],
                                   initializer=tf.initializers.glorot_uniform(),
                                   trainable=trainable)
@@ -67,24 +66,30 @@ class CharEmbeddingEncoder(Layer):
         self._filters = filters
         self._kernel_size = kernel_size
         self._name = name
-
-    def _forward(self, seq, nwords_char):
-        nwords_char = tf.count_nonzero(seq, axis=-1, dtype=tf.int32)
-        W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W), 0)
-        # [batch_size, max_len, max_char, emb_size]
-        char_emb = tf.nn.embedding_lookup(W, seq)
-        h = []
+        self._conv_layers = []
         for i in range(self._groups):
-            # [batch_size, max_len, max_char, filters[i]]
-            h.append(tf.layers.conv1d(char_emb,
-                                      kernel_size=self._kernel_size[i],
+            self._conv_layers.append(tf.layers.Conv1D(kernel_size=self._kernel_size[i],
                                       filters=self._filters[i],
-                                      stride=1,
+                                      strides=1,
                                       padding='same',
                                       activation=tf.tanh,
                                       use_bias=False,
                                       name=self._name+'_'+str(i)))
+
+    def _forward(self, seq):
+        char_shape = seq.get_shape()
+        nwords_char = tf.count_nonzero(seq, axis=-1, dtype=tf.float32, keepdims=True)
+        W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W), 0)
+        # [batch_size, max_len, max_char, emb_size]
+        char_emb = tf.nn.embedding_lookup(W, seq)
+        char_emb = tf.reshape(char_emb, [-1, char_shape[2], self._emb_size])
+        h = []
+        for i in range(self._groups):
+            # [batch_size, max_len, max_char, filters[i]]
+            h.append(self._conv_layers[i](char_emb))
         h = tf.concat(h, axis=-1)
+        print 'h', h
+        h = tf.reshape(h, [-1, char_shape[1], char_shape[2], h.get_shape()[2]])
 
 #        if self._aggregation == 'mean':
         h = tf.div_no_nan(tf.reduce_sum(h, axis=2), nwords_char)
