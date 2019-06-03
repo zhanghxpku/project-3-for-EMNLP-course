@@ -59,7 +59,6 @@ def main():
     # Create Model
     model_map = {
         'DependencyModel': models.DependencyModel,
-        'LSTMDependencyModel': models.LSTMDependencyModel,
     }
 
     assert conf.model.model_name in model_map, 'unknown model name: %s' % conf.model.model_name

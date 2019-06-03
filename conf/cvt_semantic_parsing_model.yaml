@@ -8,15 +8,15 @@ default_dataset: &default_dataset
     shuffle: True
     map_tables:
         word2id:
-            path: word.dict
+            path: word.cvt.dict
         word2id_emb:
-            path: word_emb.dict
+            path: word_emb.cvt.dict
         relation2id: 
-            path: relation.single.dict
+            path: relation.cvt.dict
         entity2id: 
-            path: entity.single.dict
+            path: entity.cvt.dict
 
-    slots: 
+    slots:
         idx:
             index: 0
             type: value
@@ -33,13 +33,16 @@ default_dataset: &default_dataset
             << : *default_slot
         relation:
             index: 2
-            type: value
+#            type: value
+            max_length: 3
             map_table: relation2id
             << : *default_slot
         entity:
             index: 3
-            type: value
+            max_length: 2
+#            type: value
             map_table: entity2id
+            << : *default_slot
 
 pred_dataset: &pred_dataset
     type: PythonDataset
@@ -48,11 +51,13 @@ pred_dataset: &pred_dataset
     shuffle: True
     map_tables:
         word2id:
-            path: word.dict
+            path: word.cvt.dict
         word2id_emb:
-            path: word_emb.dict
+            path: word_emb.cvt.dict
         relation2id: 
-            path: relation.dict
+            path: relation.cvt.dict
+        entity2id: 
+            path: entity.cvt.dict
 
     slots: 
         idx:
@@ -72,30 +77,30 @@ pred_dataset: &pred_dataset
 #            << : *default_slot
         entity:
             index: 3
-            type: value
+#            type: value
             map_table: entity2id
 
 train_dataset: &train_dataset
-    path: data/EMNLP.train.single.new
+    path: data/EMNLP.train.cvt.new
     << : *default_dataset
 
 dev_dataset: &dev_dataset
     shuffle: False
-    path: data/EMNLP.dev.single.new
+    path: data/EMNLP.dev.cvt.new
     << : *default_dataset
 
 test_dataset: &test_dataset
     shuffle: False
-    path: data/EMNLP.dev.single.new
+    path: data/EMNLP.dev.cvt.new
     << : *default_dataset
 
 predict_dataset: &predict_dataset
     shuffle: False
-    path: data/EMNLP.test.single.new
+    path: data/EMNLP.test.cvt.new
     << : *pred_dataset
 
 # logging:
-#     file: results/semantic_parsing/logging.out
+#     file: results/cvt_semantic_parsing/logging.out
 #     level: 3
 
 # Model config
@@ -116,20 +121,20 @@ model:
     # Word-level encoder
     use_word_pretrain_emb: True
     word_emb_finetune: True
-    word2vec_emb: 'embedding.300d'
-    word2gram_emb: 'word2gram_emb.npy'
-    relation2word: 'relation2word.npy'
-    relation2word_emb: 'relation2word_emb.npy'
+    word2vec_emb: 'embedding.cvt.300d'
+    word2gram_emb: 'word2gram_emb_cvt.npy'
+    relation2word: 'relation2word_cvt.npy'
+    relation2word_emb: 'relation2word_emb_cvt.npy'
     word_emb_size: 300
     use_rnn: True
     hidden_size: 300
     word_aggregation: end # max, mean, end (only for rnn), attention
 
     # Char-level encoder
-    word2char: 'word2char.npy'
-    word2gram: 'word2gram.npy'
-    relation2char: 'relation2char.npy'
-    relation2gram: 'relation2gram.npy'
+    word2char: 'word2char_cvt.npy'
+    word2gram: 'word2gram_cvt.npy'
+    relation2char: 'relation2char_cvt.npy'
+    relation2gram: 'relation2gram_cvt.npy'
     char_emb_size: 300
     encoder: trigram # trigram or CNN
     region_radius: 1 # only for trigram
@@ -168,18 +173,18 @@ estimator:
         - *dev_dataset
         # - *test_dataset
     eval_to_file: True
-    eval_op_path: results/semantic_parsing/eval.output
+    eval_op_path: results/cvt_semantic_parsing/eval.output
     # infer_dataset: *predict_dataset
-    # infer_op_path: results/semantic_parsing/infer.output
+    # infer_op_path: results/cvt_semantic_parsing/infer.output
 
     batch_size: 100
     max_epochs: 40
 
-    word2id: word.dict
-    word2id_emb: word_emb.dict
-    relation2id: relation.single.dict
-    entity2id: entity.single.dict
-    checkpoint_dir: results/semantic_parsing/checkpoint
+    word2id: word.cvt.dict
+    word2id_emb: word_emb.cvt.dict
+    relation2id: relation.cvt.dict
+    entity2id: entity.cvt.dict
+    checkpoint_dir: results/cvt_semantic_parsing/checkpoint
 
     model_name: semantic_parsing_model
     # save_checkpoints_steps: 2000

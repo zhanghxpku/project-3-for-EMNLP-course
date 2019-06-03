@@ -10,7 +10,7 @@ class TrigramEmbeddingLayer(Layer):
                  initializer=None, aggregation='mean', **kwargs):
         Layer.__init__(self, name, **kwargs)
         self._emb_size = emb_size
-        self.__aggregation = aggregation
+#        self.__aggregation = aggregation
         self._W = tf.get_variable(name + '_W', shape=[trigram_size - 1, emb_size],
                                   initializer=tf.initializers.glorot_uniform(),
                                   trainable=trainable)
@@ -18,15 +18,15 @@ class TrigramEmbeddingLayer(Layer):
     def _forward(self, seq):
         W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W), 0)
         trigram_emb = tf.nn.embedding_lookup(W, seq)
-        if self.__aggregation == 'mean':
-            emb = tf.div_no_nan(tf.reduce_sum(trigram_emb, axis=2), tf.count_nonzero(seq, axis=2, dtype=tf.float32, keepdims=True))
-        elif self.__aggregation == 'rnn':
-            nwords_char = tf.count_nonzero(seq, axis=-1, dtype=tf.int32)
-            # Forwarding LSTM
-            lstm_cell_fw = tf.contrib.rnn.LSTMBlockFusedCell(tf.shape(emb)[-1])
-            _, (_, results_fw) = lstm_cell_fw(emb, dtype=tf.float32, sequence_length=nwords_char)
-#            output_fw = tf.layers.dropout(output_fw, rate=config.dropout_rate, training=training)
-            emb = results_fw
+#        if self.__aggregation == 'mean':
+        emb = tf.div_no_nan(tf.reduce_sum(trigram_emb, axis=2), tf.count_nonzero(seq, axis=2, dtype=tf.float32, keepdims=True))
+#        elif self.__aggregation == 'rnn':
+#            nwords_char = tf.count_nonzero(seq, axis=-1, dtype=tf.int32)
+#            # Forwarding LSTM
+#            lstm_cell_fw = tf.contrib.rnn.LSTMBlockFusedCell(tf.shape(emb)[-1])
+#            _, (_, results_fw) = lstm_cell_fw(emb, dtype=tf.float32, sequence_length=nwords_char)
+##            output_fw = tf.layers.dropout(output_fw, rate=config.dropout_rate, training=training)
+#            emb = results_fw
         return emb
 
 
@@ -86,14 +86,14 @@ class CharEmbeddingEncoder(Layer):
                                       name=self._name+'_'+str(i)))
         h = tf.concat(h, axis=-1)
 
-        if self.__aggregation == 'mean':
-            h = tf.div_no_nan(tf.reduce_sum(h, axis=2), nwords_char)
-        elif self.__aggregation == 'rnn':
-            # Forwarding LSTM
-            lstm_cell_fw = tf.contrib.rnn.LSTMBlockFusedCell(tf.shape(h)[-1])
-            _, (_, results_fw) = lstm_cell_fw(h, dtype=tf.float32, sequence_length=nwords_char)
-#            output_fw = tf.layers.dropout(output_fw, rate=config.dropout_rate, training=training)
-            h = results_fw
+#        if self._aggregation == 'mean':
+        h = tf.div_no_nan(tf.reduce_sum(h, axis=2), nwords_char)
+#        elif self._aggregation == 'rnn':
+#            # Forwarding LSTM
+#            lstm_cell_fw = tf.contrib.rnn.LSTMBlockFusedCell(tf.shape(h)[-1])
+#            _, (_, results_fw) = lstm_cell_fw(h, dtype=tf.float32, sequence_length=nwords_char)
+##            output_fw = tf.layers.dropout(output_fw, rate=config.dropout_rate, training=training)
+#            h = results_fw
 
         return h
 
