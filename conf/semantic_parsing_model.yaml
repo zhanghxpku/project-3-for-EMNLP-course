@@ -137,8 +137,8 @@ model:
     relation2word: 'relation2word.npy'
     relation2word_emb: 'relation2word_emb.npy'
     word_emb_size: 300
-    use_rnn: False
-    hidden_size: 300
+    use_rnn: True
+    hidden_size: 100
     word_aggregation: max # max, mean, end (only for rnn), attention
 
     # Char-level encoder
@@ -158,18 +158,16 @@ model:
         - 3
         - 5
         - 7
-    use_rnn_char: False
-    hidden_size_char: 300 # only for rnn
+    use_rnn_char: True
+    hidden_size_char: 100 # only for rnn
     aggregation: max # max, mean, attention
 
     # Combination
-    use_highway: False
+    use_highway: True
     
     # Projection to semantic space
     layer_num: 0
-    semantic_size: 500
-    dropout_rate: 0.1
-    negative_samples: 100
+    semantic_size: 1000
     gamma: 5
     comb2relation: 'comb2relation.npy'
     
@@ -177,6 +175,8 @@ model:
     batch_size: 100
     optimizer: Adam
     learning_rate: 0.02
+    dropout_rate: 0.05
+#    negative_samples: 100
     use_clip_by_norm: True
     decay_step: 309
     decay_rate: 0.9

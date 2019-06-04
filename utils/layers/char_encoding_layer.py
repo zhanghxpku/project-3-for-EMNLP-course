@@ -43,8 +43,7 @@ class TrigramEmbeddingEncoder(Layer):
                                                                  trainable=trainable,
                                                                  aggregation=aggregation,
                                                                  name=name+'_trigram_emb_' + str(i)))
-
-    def _forward(self, seq):
+    def _forward(self, seq):      
         h = []
         max_len = tf.shape(seq)[1]
         paded_seq = tf.cast(tf.pad(seq, self._paddings, "CONSTANT"), dtype=tf.int32)
@@ -88,7 +87,6 @@ class CharEmbeddingEncoder(Layer):
             # [batch_size, max_len, max_char, filters[i]]
             h.append(self._conv_layers[i](char_emb))
         h = tf.concat(h, axis=-1)
-        print 'h', h
         h = tf.reshape(h, [-1, char_shape[1], char_shape[2], h.get_shape()[2]])
 
 #        if self._aggregation == 'mean':

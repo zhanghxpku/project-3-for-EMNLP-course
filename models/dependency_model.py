@@ -107,10 +107,11 @@ class DependencyModel(model_base.ModelBase):
             h_pattern_word = tf.reduce_max(h_pattern_word - pattern_mask*1000, axis=1)
             h_relation_word = tf.reduce_max(h_relation_word - relation_mask*1000, axis=1)
         elif config.word_aggregation == 'mean':
+            emb_size = tf.shape(h_pattern_word)[-1]
             pattern_mask = tf.tile(tf.expand_dims(tf.cast(tf.not_equal(patterns, 0), dtype=tf.float32), axis=-1), [1,1,emb_size])
             relation_mask = tf.tile(tf.expand_dims(tf.cast(tf.not_equal(relations, 0), dtype=tf.float32), axis=-1), [1,1,emb_size])
-            h_pattern_word = tf.div_no_nan(tf.reduce_sum(h_pattern_word*pattern_mask), tf.count_nonzero(patterns, axis=-1, dtype=tf.float32, keepdims=True))
-            h_relation_word = tf.div_no_nan(tf.reduce_sum(h_relation_word*relation_mask), tf.count_nonzero(relations, axis=-1, dtype=tf.float32, keepdims=True))
+            h_pattern_word = tf.div_no_nan(tf.reduce_sum(h_pattern_word*pattern_mask), tf.tile(tf.expand_dims(tf.count_nonzero(patterns, axis=-1, dtype=tf.float32, keepdims=True)), axis=-1), [1,1,emb_size])
+            h_relation_word = tf.div_no_nan(tf.reduce_sum(h_relation_word*relation_mask), tf.tile(tf.expand_dims(tf.count_nonzero(relations, axis=-1, dtype=tf.float32, keepdims=True)), axis=-1), [1,1,emb_size])
         elif config.word_aggregation == 'end':
             h_pattern_word = results_fw + results_bw
             h_relation_word = results_fw_relation + results_bw_relation
@@ -177,10 +178,11 @@ class DependencyModel(model_base.ModelBase):
             h_pattern_char = tf.reduce_max(h_pattern_char - pattern_mask*1000, axis=1)
             h_relation_char = tf.reduce_max(h_relation_char - relation_mask*1000, axis=1)
         elif config.aggregation == 'mean':
+            emb_size = tf.shape(h_pattern_char)[-1]
             pattern_mask = tf.tile(tf.expand_dims(tf.cast(tf.not_equal(patterns, 0), dtype=tf.float32), axis=-1), [1,1,emb_size])
             relation_mask = tf.tile(tf.expand_dims(tf.cast(tf.not_equal(relations, 0), dtype=tf.float32), axis=-1), [1,1,emb_size])
-            h_pattern_char = tf.div_no_nan(tf.reduce_sum(h_pattern_char*pattern_mask), tf.count_nonzero(patterns, axis=-1, dtype=tf.float32, keepdims=True))
-            h_relation_char = tf.div_no_nan(tf.reduce_sum(h_relation_char*relation_mask), tf.count_nonzero(relations, axis=-1, dtype=tf.float32, keepdims=True))
+            h_pattern_char = tf.div_no_nan(tf.reduce_sum(h_pattern_char*pattern_mask), tf.tile(tf.expand_dims(tf.count_nonzero(patterns, axis=-1, dtype=tf.float32, keepdims=True)), axis=-1), [1,1,emb_size])
+            h_relation_char = tf.div_no_nan(tf.reduce_sum(h_relation_char*relation_mask), tf.tile(tf.expand_dims(tf.count_nonzero(relations, axis=-1, dtype=tf.float32, keepdims=True)), axis=-1), [1,1,emb_size])
         elif config.word_aggregation == 'end':
             h_pattern_char = results_fw_char + results_bw_char
             h_relation_char = results_fw_relation_char + results_bw_relation_char
@@ -228,13 +230,22 @@ class DependencyModel(model_base.ModelBase):
         for i in range(config.layer_num):
             h_relation = dense_layers[i](h_relation)
             h_relation = tf.layers.dropout(h_relation, rate=config.dropout_rate, training=training)
+        
+        # [single_size+comb_size, 3, semantic_size]
+        h_relation_comb = tf.nn.embedding_lookup(h_relation, self.comb2relation_layer)
+        w = tf.get_variable('w', shape=[3])
+        h_relation = tf.einsum('j,ijk->ik', w, h_relation_comb)
+#        relation = tf.reduce_max(relation_comb, axis=1)
+        
         # [relation_size, semantic_size]
         relation = semantic_proj(h_relation)
         relation = tf.layers.dropout(relation, rate=config.dropout_rate, training=training)
         
-        # [single_size+comb_size, 3, semantic_size]
-        relation_comb = tf.nn.embedding_lookup(relation, self.comb2relation_layer)
-        relation = tf.reduce_max(relation_comb, axis=1)
+#        # [single_size+comb_size, 3, semantic_size]
+#        relation_comb = tf.nn.embedding_lookup(relation, self.comb2relation_layer)
+#        w = tf.get_variable('w', shape=[3])
+#        relation = tf.einsum('j,ijk->ik', w, relation_comb)
+##        relation = tf.reduce_max(relation_comb, axis=1)
         
         # [batch_size]
         norm_p = tf.expand_dims(tf.norm(pattern, axis=-1), axis=-1)

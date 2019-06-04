@@ -6,11 +6,11 @@ Created on Fri May 31 11:25:22 2019
 """
 
 import numpy as np
-import string
+#import string
 
 def tokenize(word, num=True):
     ret = ''
-    punc = set(string.punctuation)
+    punc = set('!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~')
     for c in word:
         if c not in punc:
             if c.isnumeric() and num:

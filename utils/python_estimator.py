@@ -258,6 +258,7 @@ class PythonEstimator(object):
 #                print res['pred']
             if hasattr(self.config, 'eval_to_file') and self.config.eval_to_file:
                 word2id = {i : line.strip() for i, line in enumerate(open(self.config.word2id, 'r'))}
+                word2id_emb = {i : line.strip() for i, line in enumerate(open(self.config.word2id_emb, 'r'))}
                 relation2id = {i : line.strip() for i, line in enumerate(open(self.config.comb2id, 'r'))}
                 entity2id = {i : line.strip() for i, line in enumerate(open(self.config.entity2id, 'r'))}
                 
@@ -268,6 +269,7 @@ class PythonEstimator(object):
                         break
                     idx = res['idx']
                     word = map(lambda x: word2id.get(x, '<UNK>'), res['word'])
+                    word_emb = map(lambda x: word2id_emb.get(x, '<UNK>'), res['word_emb'])
                     relation = map(lambda x: relation2id.get(x, '<UNK>'), [res['relation']])
                     entity = map(lambda x: entity2id.get(x, '<UNK>'), res['entity'])
                     pred = map(lambda x: relation2id.get(x, '<UNK>'), [res['pred']])
@@ -280,7 +282,7 @@ class PythonEstimator(object):
                             break
                     fout.write('\n'.join([str(idx),' '.join(word[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
                     if res['relation'] != res['pred']:
-                        fout_err.write('\n'.join([str(idx),' '.join(word[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
+                        fout_err.write('\n'.join([str(idx),' '.join(word[:word_len]),' '.join(word_emb[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
                 fout.close()
                 fout_err.close()
 
