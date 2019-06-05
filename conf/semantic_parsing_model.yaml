@@ -11,6 +11,8 @@ default_dataset: &default_dataset
             path: word.dict
         word2id_emb:
             path: word_emb.dict
+        word2id_train:
+            path: word_train.dict
         relation2id: 
             path: relation.dict
         entity2id: 
@@ -33,7 +35,11 @@ default_dataset: &default_dataset
             max_length: 56
             pad: 0
         word_emb:
+            index: 4
             map_table: word2id_emb
+            << : *default_slot
+        word_train:
+            map_table: word2id_train
             << : *default_slot
 #        relation:
 #            index: 2
@@ -51,7 +57,7 @@ default_dataset: &default_dataset
             map_table: entity2id
             << : *default_slot
         typ:
-            index: 4
+            index: 5
             type: value
             value_type: int32
 
@@ -65,6 +71,8 @@ pred_dataset: &pred_dataset
             path: word.dict
         word2id_emb:
             path: word_emb.dict
+        word2id_train:
+            path: word_train.dict
         relation2id: 
             path: relation.dict
 
@@ -77,7 +85,11 @@ pred_dataset: &pred_dataset
             index: 1
             << : *default_slot
         word_emb:
+            index: 3
             map_table: word2id_emb
+            << : *default_slot
+        word_train:
+            map_table: word2id_train
             << : *default_slot
 #        relation:
 #            index: 2
@@ -85,7 +97,7 @@ pred_dataset: &pred_dataset
 #            map_table: relation2id
 #            << : *default_slot
         entity:
-            index: 3
+            index: 4
             type: value
             map_table: entity2id
 
@@ -118,13 +130,14 @@ model:
     
     # Data
     max_length: 56
-    max_char: 31
+    max_char: 32
     relation_max_len: 12
     
-    char_size: 144
-    trigram_size: 5606
-    vocab_size: 19720
-    vocab_size_emb: 16973
+    char_size: 148
+    trigram_size: 6293
+    vocab_size: 21332
+    vocab_size_emb: 16908
+    vocab_size_train: 7782
     relation_size: 1562
     comb_size: 436
     single_size: 1229
@@ -136,9 +149,10 @@ model:
     word2gram_emb: 'word2gram_emb.npy'
     relation2word: 'relation2word.npy'
     relation2word_emb: 'relation2word_emb.npy'
+    relation2word_train: 'relation2word_train.npy'
     word_emb_size: 300
     use_rnn: True
-    hidden_size: 100
+    hidden_size: 300
     word_aggregation: max # max, mean, end (only for rnn), attention
 
     # Char-level encoder
@@ -146,7 +160,7 @@ model:
     word2gram: 'word2gram.npy'
     relation2char: 'relation2char.npy'
     relation2gram: 'relation2gram.npy'
-    char_emb_size: 300
+    char_emb_size: 500
     encoder: trigram # trigram or CNN
     region_radius: 1 # only for trigram
     groups: 1 # only for CNN
@@ -158,12 +172,12 @@ model:
         - 3
         - 5
         - 7
-    use_rnn_char: True
+    use_rnn_char: False
     hidden_size_char: 100 # only for rnn
     aggregation: max # max, mean, attention
 
     # Combination
-    use_highway: True
+    use_highway: False
     
     # Projection to semantic space
     layer_num: 0

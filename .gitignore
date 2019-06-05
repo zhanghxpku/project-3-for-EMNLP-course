@@ -17,3 +17,4 @@ data/embedding/glove.840B.300d.zip
 data/embedding/glove.840B.300d.txt
 word.dict.emb
 *.300d
+*.300d

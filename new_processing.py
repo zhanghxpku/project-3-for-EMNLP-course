@@ -8,11 +8,11 @@ Created on Fri May 31 11:25:22 2019
 import numpy as np
 #import string
 
-def tokenize(word, num=True):
+def tokenize(word, num=False, pun=True):
     ret = ''
-    punc = set('!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~')
+    punc = set('!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~–’⁄「」')
     for c in word:
-        if c not in punc:
+        if not pun or c not in punc:
             if c.isnumeric() and num:
                 if not ret.endswith('0'):
                     ret += '0'
@@ -21,7 +21,18 @@ def tokenize(word, num=True):
         else:
             if not ret.endswith(' '):
                 ret += ' '
-    return ret.strip()
+    temp = []
+    for w in ret.split():
+        has_num = False
+        for c in w:
+            if c.isnumeric() and num:
+                has_num = True
+                break
+        if has_num:
+            temp.append('0')
+        else:
+            temp.append(w)
+    return ' '.join(temp).strip()
 
 def get_chars(word):
     word = '#' + word + '#'
@@ -90,6 +101,7 @@ def generate_tables():
     dataset = ['data/EMNLP.train', 'data/EMNLP.dev']
     
     words = set()
+    words_train = set()
     relation = set()
     relation_comb = set()
     relation_single = set()
@@ -106,12 +118,20 @@ def generate_tables():
         sents = []
         with open(ds, encoding='utf-8') as fin:
             question_type = ''
-#            ent_pair = []
+            ent_pair = []
             for line in fin:
                 line = line.strip()
                 if line.startswith('=='):
                     total_line += 1
+                    sents.append(tokenize(sents[1],num=True).replace('bbbbb','@').replace('eeeee', '&'))
                     sents[1] = tokenize(sents[1]).replace('bbbbb','@').replace('eeeee', '&')
+                    if sents[3] == ' '.join(ent_pair):
+                        sents.append('0')
+#                                fout_t.write('\n'.join(sents)+'\n')
+                    elif sents[3] != ' '.join(ent_pair):
+                        sents.append('1')
+#                                fout_f.write('\n'.join(sents)+'\n')
+                    ent_pair = []
                     question_type = '0' if question_type=='single' else '1'
                     fout.write('\t'.join(sents)+'\t'+question_type+'\n'.replace('  ', ' '))
                     for j, item in enumerate(sents[1:3]):
@@ -120,6 +140,7 @@ def generate_tables():
                         for word in item.split():
                             words.add(word)
                             if idx == 1:
+                                words_train.add(word)
                                 c, t = get_chars(word)
                                 chars.update(c)
                                 trigrams.update(t)
@@ -145,7 +166,7 @@ def generate_tables():
                         else:
                             word = [line[8], line[13], line[18]]
                             relation_comb.add(' '.join(word))
-#                            ent_pair = [line[9], line[15]]
+                            ent_pair = [line[9], line[15]]
                             for w in word:
                                 relation.add(w)
                             sents.append(' '.join(word))
@@ -186,11 +207,6 @@ def generate_tables():
                             question_new.extend(question[int(loc[1])+3:])
                             max_len = max_len if max_len > len(question_new) else len(question_new)
                             sents[1] = ' '.join(question_new)
-#                            if sents[-1] == ' '.join(ent_pair):
-#                                fout_t.write('\n'.join(sents)+'\n')
-#                            elif sents[-1] != ' '.join(ent_pair):
-#                                fout_f.write('\n'.join(sents)+'\n')
-#                            ent_pair = []
                         
         fout.close()
     
@@ -253,12 +269,20 @@ def generate_tables():
         fout.write(e+'\n')
     fout.close()
     
-    print('number of entity combination in all sets:', len(entity))
+    print('number of entity combination in all sets:', len(entity_comb))
     entity_comb = sorted(entity_comb)
     fout = open('entity_comb.dict', 'w', encoding='utf-8')
 #    fout.write('<PAD>\n<UNK>\n')
     for e in entity_comb:
         fout.write(e+'\n')
+    fout.close()
+    
+    print('number of words in training set:', len(words_train))
+    words_train = sorted(words_train)
+    fout = open('word_train.dict', 'w', encoding='utf-8')
+    fout.write('<PAD>\n<UNK>\n')
+    for r in words_train:
+        fout.write(r+'\n')
     fout.close()
     
     print('number of all words:', len(words))
@@ -269,9 +293,9 @@ def generate_tables():
         fout.write(r+'\n')
     fout.close()
     
-    return words, chars, trigrams, relation, relation_comb, relation_single
+    return words, chars, trigrams, relation, relation_comb, relation_single, words_train
 
-def build_maps(words, chars, trigrams, relation, relation_comb, relation_single):
+def build_maps(words, chars, trigrams, relation, relation_comb, relation_single, words_train):
     word_num = len(words)
     max_char = 0
     for word in words:
@@ -344,6 +368,22 @@ def build_maps(words, chars, trigrams, relation, relation_comb, relation_single)
     np.save('relation2word', relation2word)
     np.save('relation2gram', relation2gram)
     
+    word2id = {}
+    for idx, w in enumerate(words_train):
+        word2id[w] = idx + 2
+    
+    relation2word_train = np.zeros(shape=[relation_num, max_word], dtype=np.int32)
+    for idx_r, r in enumerate(relation):
+        r = r.split('mso:')[-1]
+        r = tokenize(r).split()
+        for idx, word in enumerate(r):
+            if word in words_train:
+                relation2word[idx_r, idx] = word2id[word]
+            else:
+                relation2word[idx_r, idx] = 1
+    
+    np.save('relation2word_train', relation2word_train)
+    
     relation2id = {}
     for idx, r in enumerate(relation):
         relation2id[r] = idx
@@ -366,6 +406,9 @@ def build_maps(words, chars, trigrams, relation, relation_comb, relation_single)
         
     
 def build_pretrained(words, chars, trigrams, relation, read_glove=True):
+    words = set([tokenize(word,num=True,pun=False) for word in words])
+    words = sorted(words)
+    print(len(words))
     words_emb = set()
     word2idx_emb = {}
     
@@ -447,7 +490,7 @@ def build_pretrained(words, chars, trigrams, relation, read_glove=True):
     relation2word = np.zeros(shape=[relation_num, max_word], dtype=np.int32)
     for idx_r, r in enumerate(relation):
         r = r.split('mso:')[-1]
-        r = tokenize(r).split()
+        r = tokenize(r,num=True).split()
         for idx, word in enumerate(r):
             if word in words_emb:
                 relation2word[idx_r, idx] = word2id[word]
@@ -458,11 +501,12 @@ def build_pretrained(words, chars, trigrams, relation, read_glove=True):
 
 
 def main():
+    pass
     # seperate into single relation and CVT
 #    seperate_relation()
-    words, chars, trigrams, relation, comb, relation_single = generate_tables()
-    build_maps(words, chars, trigrams, relation, comb, relation_single)
-    build_pretrained(words, chars, trigrams, relation, read_glove=False)
+    words, chars, trigrams, relation, comb, relation_single, words_train = generate_tables()
+#    build_maps(words, chars, trigrams, relation, comb, relation_single, words_train)
+#    build_pretrained(words, chars, trigrams, relation, read_glove=True)
 
     
 if '__main__' == __name__:

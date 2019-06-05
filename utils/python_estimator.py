@@ -276,11 +276,16 @@ class PythonEstimator(object):
                     typ = res['typ']
                     entity = entity[0] if res['typ'] == 0 else ' '.join(entity)
                     word_len = 0
-                    for i in range(len(word)):
-                        if res['word'][i] == 0:
+                    for i in range(len(word_emb)):
+                        if res['word_emb'][i] == 0:
                             word_len = i
                             break
-                    fout.write('\n'.join([str(idx),' '.join(word[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
+                    fout.write('\n'.join([str(idx),' '.join(word[:word_len]),' '.join(word_emb[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
+                    res['word_emb'] = [str(c) for c in res['word_emb']]
+                    res['relation'] = str(res['relation'])
+                    res['entity'] = [str(c) for c in res['entity']]
+                    res['pred'] = str(res['pred'])
+                    fout.write('\n'.join([str(idx),' '.join(res['word_emb'][:word_len]),res['relation']+'\t'+res['pred'],' '.join(res['entity'])+'\t'+str(typ)+'\n']))
                     if res['relation'] != res['pred']:
                         fout_err.write('\n'.join([str(idx),' '.join(word[:word_len]),' '.join(word_emb[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
                 fout.close()

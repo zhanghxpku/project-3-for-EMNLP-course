@@ -19,9 +19,14 @@ class DependencyModel(model_base.ModelBase):
         relation2word = tf.constant(np.load(config.relation2word))
         self.relation2word_layer = tf.get_variable('relation2word', initializer=relation2word,
                                                   trainable=False)
-        relation2word_emb = tf.constant(np.load(config.relation2word_emb))
-        self.relation2word_emb_layer = tf.get_variable('relation2word_emb', initializer=relation2word_emb,
-                                                  trainable=False)
+        if not config.use_word_pretrain_emb:
+            relation2word_emb = tf.constant(np.load(config.relation2word_train))
+            self.relation2word_emb_layer = tf.get_variable('relation2word_emb', initializer=relation2word_emb,
+                                                      trainable=False)
+        else:
+            relation2word_emb = tf.constant(np.load(config.relation2word_emb))
+            self.relation2word_emb_layer = tf.get_variable('relation2word_emb', initializer=relation2word_emb,
+                                                      trainable=False)
         comb2relation = tf.constant(np.load(config.comb2relation))
         self.comb2relation_layer = tf.get_variable('comb2relation', initializer=comb2relation,
                                                   trainable=False)
@@ -44,7 +49,8 @@ class DependencyModel(model_base.ModelBase):
     def build_graph(self, inputs, mode):
         config = self.config
         training = (mode == tf.estimator.ModeKeys.TRAIN)        
-
+        if not training:
+            config.dropout_rate = 0.0
         # [batch_size, max_len]
         patterns = inputs['word']
         # [relation_size, relation_max_len]
@@ -55,11 +61,12 @@ class DependencyModel(model_base.ModelBase):
         
         # Encoding
         # Word-level Encoder
-        patterns_emb = inputs['word_emb']
-#        if not config.use_word_pretrain_emb:
-#            word_emb_layer = layers.EmbeddingLayer(config.vocab_size, config.word_emb_size, name='word_emb')
-#        else:
-        word_emb_layer = layers.InitializedEmbeddingLayer(config.vocab_size_emb, config.word_emb_size, config.word2vec_emb,
+        if not config.use_word_pretrain_emb:
+            patterns_emb = inputs['word_train']
+            word_emb_layer = layers.EmbeddingLayer(config.vocab_size_train, config.word_emb_size, name='word_emb')
+        else:
+            patterns_emb = inputs['word_emb']
+            word_emb_layer = layers.InitializedEmbeddingLayer(config.vocab_size_emb, config.word_emb_size, config.word2vec_emb,
                                                           trainable=config.word_emb_finetune,
                                                           name='word_emb')
         patterns_emb = word_emb_layer(patterns_emb)
@@ -108,10 +115,10 @@ class DependencyModel(model_base.ModelBase):
             h_relation_word = tf.reduce_max(h_relation_word - relation_mask*1000, axis=1)
         elif config.word_aggregation == 'mean':
             emb_size = tf.shape(h_pattern_word)[-1]
-            pattern_mask = tf.tile(tf.expand_dims(tf.cast(tf.not_equal(patterns, 0), dtype=tf.float32), axis=-1), [1,1,emb_size])
-            relation_mask = tf.tile(tf.expand_dims(tf.cast(tf.not_equal(relations, 0), dtype=tf.float32), axis=-1), [1,1,emb_size])
-            h_pattern_word = tf.div_no_nan(tf.reduce_sum(h_pattern_word*pattern_mask), tf.tile(tf.expand_dims(tf.count_nonzero(patterns, axis=-1, dtype=tf.float32, keepdims=True)), axis=-1), [1,1,emb_size])
-            h_relation_word = tf.div_no_nan(tf.reduce_sum(h_relation_word*relation_mask), tf.tile(tf.expand_dims(tf.count_nonzero(relations, axis=-1, dtype=tf.float32, keepdims=True)), axis=-1), [1,1,emb_size])
+            pattern_mask = tf.expand_dims(tf.cast(tf.not_equal(patterns, 0), dtype=tf.float32), axis=-1)
+            relation_mask = tf.expand_dims(tf.cast(tf.not_equal(relations, 0), dtype=tf.float32), axis=-1)
+            h_pattern_word = tf.div_no_nan(tf.reduce_sum(h_pattern_word*pattern_mask), tf.count_nonzero(patterns, axis=-1, dtype=tf.float32, keepdims=True))
+            h_relation_word = tf.div_no_nan(tf.reduce_sum(h_relation_word*relation_mask), tf.count_nonzero(relations, axis=-1, dtype=tf.float32, keepdims=True))
         elif config.word_aggregation == 'end':
             h_pattern_word = results_fw + results_bw
             h_relation_word = results_fw_relation + results_bw_relation
@@ -179,20 +186,23 @@ class DependencyModel(model_base.ModelBase):
             h_relation_char = tf.reduce_max(h_relation_char - relation_mask*1000, axis=1)
         elif config.aggregation == 'mean':
             emb_size = tf.shape(h_pattern_char)[-1]
-            pattern_mask = tf.tile(tf.expand_dims(tf.cast(tf.not_equal(patterns, 0), dtype=tf.float32), axis=-1), [1,1,emb_size])
-            relation_mask = tf.tile(tf.expand_dims(tf.cast(tf.not_equal(relations, 0), dtype=tf.float32), axis=-1), [1,1,emb_size])
-            h_pattern_char = tf.div_no_nan(tf.reduce_sum(h_pattern_char*pattern_mask), tf.tile(tf.expand_dims(tf.count_nonzero(patterns, axis=-1, dtype=tf.float32, keepdims=True)), axis=-1), [1,1,emb_size])
-            h_relation_char = tf.div_no_nan(tf.reduce_sum(h_relation_char*relation_mask), tf.tile(tf.expand_dims(tf.count_nonzero(relations, axis=-1, dtype=tf.float32, keepdims=True)), axis=-1), [1,1,emb_size])
+            pattern_mask = tf.expand_dims(tf.cast(tf.not_equal(patterns, 0), dtype=tf.float32), axis=-1)
+            relation_mask = tf.expand_dims(tf.cast(tf.not_equal(relations, 0), dtype=tf.float32), axis=-1)
+            h_pattern_char = tf.div_no_nan(tf.reduce_sum(h_pattern_char*pattern_mask), tf.count_nonzero(patterns, axis=-1, dtype=tf.float32, keepdims=True))
+            h_relation_char = tf.div_no_nan(tf.reduce_sum(h_relation_char*relation_mask), tf.count_nonzero(relations, axis=-1, dtype=tf.float32, keepdims=True))
         elif config.word_aggregation == 'end':
             h_pattern_char = results_fw_char + results_bw_char
             h_relation_char = results_fw_relation_char + results_bw_relation_char
         elif config.aggregation == 'attention':
             assert False, 'nor implemented error'
         
-        # [batch_size, max_len, char_emb_size+word_emb_size]
-        h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)
-        # [relation_size, relation_max_len, char_emb_size+word_emb_size]
-        h_relation = tf.concat([h_relation_char, h_relation_word], axis=-1)
+#        # [batch_size, max_len, char_emb_size+word_emb_size]
+#        h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)
+#        # [relation_size, relation_max_len, char_emb_size+word_emb_size]
+#        h_relation = tf.concat([h_relation_char, h_relation_word], axis=-1)
+        
+        h_pattern = h_pattern_char
+        h_relation = h_relation_char
 
         if config.use_highway:
             dense_t = tf.layers.Dense(h_pattern.get_shape()[-1],
@@ -236,7 +246,6 @@ class DependencyModel(model_base.ModelBase):
         w = tf.get_variable('w', shape=[3])
         h_relation = tf.einsum('j,ijk->ik', w, h_relation_comb)
 #        relation = tf.reduce_max(relation_comb, axis=1)
-        
         # [relation_size, semantic_size]
         relation = semantic_proj(h_relation)
         relation = tf.layers.dropout(relation, rate=config.dropout_rate, training=training)
