@@ -74,9 +74,9 @@ class DependencyModel(model_base.ModelBase):
             word_emb_layer = layers.InitializedEmbeddingLayer(config.vocab_size_emb, config.word_emb_size, config.word2vec_emb,
                                                           trainable=config.word_emb_finetune,
                                                           name='word_emb')
-        patterns_emb = word_emb_layer(patterns_emb)
+        patterns_emb = word_emb_layer(patterns_emb, zero_forward=True)
         relations_emb = self.relation2word_emb_layer
-        relations_emb = word_emb_layer(relations_emb)
+        relations_emb = word_emb_layer(relations_emb, zero_forward=True)
         
         patterns_emb = tf.layers.dropout(patterns_emb, rate=dropout_rate, training=training)
         relations_emb = tf.layers.dropout(relations_emb, rate=dropout_rate, training=training)
@@ -212,21 +212,21 @@ class DependencyModel(model_base.ModelBase):
         elif config.aggregation == 'attention':
             assert False, 'nor implemented error'
         
-#        # [batch_size, max_len, char_emb_size+word_emb_size]
-#        h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)
-#        # [relation_size, relation_max_len, char_emb_size+word_emb_size]
-#        h_relation = tf.concat([h_relation_char, h_relation_word], axis=-1)
-#        
-#        h_entity1 = tf.expand_dims(tf.concat([h_entity1_char, h_entity1_word], axis=-1), axis=1)
-#        h_entity2 = tf.expand_dims(tf.concat([h_entity2_char, h_entity2_word], axis=-1), axis=1)
-#        
-        h_entity1 = tf.expand_dims(h_entity1_char, axis=1)
-        h_entity2 = tf.expand_dims(h_entity2_char, axis=1)
-        # [batch_size, 2, emb_size]
-        h_entity = tf.concat([h_entity1, h_entity2], axis=1)
+        # [batch_size, max_len, char_emb_size+word_emb_size]
+        h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)
+        # [relation_size, relation_max_len, char_emb_size+word_emb_size]
+        h_relation = tf.concat([h_relation_char, h_relation_word], axis=-1)
         
-        h_pattern = h_pattern_char
-        h_relation = h_relation_char
+        h_entity1 = tf.expand_dims(tf.concat([h_entity1_char, h_entity1_word], axis=-1), axis=1)
+        h_entity2 = tf.expand_dims(tf.concat([h_entity2_char, h_entity2_word], axis=-1), axis=1)
+#        
+#        h_entity1 = tf.expand_dims(h_entity1_word, axis=1)
+#        h_entity2 = tf.expand_dims(h_entity2_word, axis=1)
+#        # [batch_size, 2, emb_size]
+        h_entity = tf.concat([h_entity1, h_entity2], axis=1)
+#        
+#        h_pattern = h_pattern_word
+#        h_relation = h_relation_word
 
         if config.use_highway:
             dense_t = tf.layers.Dense(h_pattern.get_shape()[-1],
@@ -327,10 +327,10 @@ class DependencyModel(model_base.ModelBase):
         # [batch_size, 2]
         score_order = tf.einsum('bij,ji->bi', score_order, coef)
 
-        order_one_hot = tf.one_hot(entity_order, 2)
-        self.loss_op += tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
-                        labels=order_one_hot,
-                        logits=score_order) * tf.cast(inputs['typ'],tf.float32))*0.001
+#        order_one_hot = tf.one_hot(entity_order, 2)
+#        self.loss_op += tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
+#                        labels=order_one_hot,
+#                        logits=score_order) * tf.cast(inputs['typ'],tf.float32))*0.001
         
         self.infer_order_op = tf.argmax(score_order, -1)
         

@@ -60,7 +60,7 @@ class InitializedEmbeddingLayer(Layer):
 
     def _forward(self, seq, zero_forward=False):
         if zero_forward:
-            W = tf.concat((tf.zeros(shape=[2, self._emb_size]), self._W[2:, :]), 0)
+            W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W[1:, :]), 0)
             return tf.nn.embedding_lookup(W, seq)
         else:
             return tf.nn.embedding_lookup(self._W, seq)

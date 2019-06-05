@@ -3,6 +3,7 @@
 
 import tensorflow as tf
 from .layer import Layer
+import numpy as np
 
 
 class TrigramEmbeddingLayer(Layer):
@@ -34,69 +35,73 @@ class TrigramEmbeddingEncoder(Layer):
     def __init__(self, trigram_size, emb_size, region_radius, trainable=True, name="tri_encoder",
                  initializer=None, aggregation='mean', **kwargs):
         Layer.__init__(self, name, **kwargs)
-        self._emb_size = emb_size
-        self._region_radius = region_radius
-        self._paddings = tf.constant([[0, 0], [region_radius, region_radius], [0, 0]])
-        self._trigram_emb_layer = []
-        for i in range(2 * region_radius + 1):
-            self._trigram_emb_layer.append(TrigramEmbeddingLayer(trigram_size, emb_size,
-                                                                 trainable=trainable,
-                                                                 aggregation=aggregation,
-                                                                 name=name+'_trigram_emb_' + str(i)))
-    def _forward(self, seq):
-        h = []
-        max_len = tf.shape(seq)[1]
-        paded_seq = tf.cast(tf.pad(seq, self._paddings, "CONSTANT"), dtype=tf.int32)
-        for i in range(2 * self._region_radius + 1):
-            h.append(self._trigram_emb_layer[i](paded_seq[:,i:i+max_len,:]))
-        h = tf.tanh(tf.add_n(h))
-        return h
 #        self._emb_size = emb_size
-#        self._aggregation = aggregation
 #        self._region_radius = region_radius
-#        if self._aggregation == 'mean':
-#            self._W = tf.get_variable(name + '_W', shape=[trigram_size*(region_radius*2+1), emb_size],
-#                                      initializer=tf.initializers.glorot_uniform(),
-#                                      trainable=trainable)
-#        if self._aggregation == 'region':
-#            self._W = tf.get_variable(name + '_W', shape=[trigram_size, emb_size],
-#                                      initializer=tf.initializers.glorot_uniform(),
-#                                      trainable=trainable)
-#            # Context matrix
-#            self._U = tf.get_variable(name + '_U',
-#                         shape=[trigram_size*(region_radius*2+1), emb_size],
-#                         dtype=tf.float32,
-#                         trainable=True)
-#
+#        self._paddings = tf.constant([[0, 0], [region_radius, region_radius], [0, 0]])
+#        self._trigram_emb_layer = []
+#        for i in range(2 * region_radius + 1):
+#            self._trigram_emb_layer.append(TrigramEmbeddingLayer(trigram_size, emb_size,
+#                                                                 trainable=trainable,
+#                                                                 aggregation=aggregation,
+#                                                                 name=name+'_trigram_emb_' + str(i)))
 #    def _forward(self, seq):
-#        max_len = seq.get_shape()[2]
-#        region_size = 2 * self._region_radius + 1
-#        paddings = tf.constant([[0, 0], [0, 0], [self._region_radius, self._region_radius]])
-#        padded_seq = tf.pad(seq, paddings, "CONSTANT")
-#        s = tf.shape(seq)
-#        r = xrange(region_size)
-#        align_seq = tf.map_fn(lambda i: padded_seq[:,:,i:i+tf.shape(seq)[2]], r)
-#        align_layer = tf.map_fn(lambda i: tf.ones(shape=s,dtype=tf.int32)*i, r)
-##        align_layer = tf.convert_to_tensor(align_layer)
-##        align_seq = tf.convert_to_tensor(align_seq)
-#        align_emb = align_layer + align_seq*region_size
-#        align_emb = tf.transpose(align_emb, perm=[1, 2, 0, 3])
-#        trigram_emb = tf.nn.embedding_lookup(self._W, seq)
-#        if self._aggregation == 'mean':
-#            align_emb = tf.nn.embedding_lookup(self._W, align_emb)
-##            mask = tf.tile(tf.expand_dims(tf.cast(tf.equal(seq, 0), dtype=tf.float32), axis=-1), [1,1,1,self._emb_size])
-##            trigram_emb = tf.reduce_max(trigram_emb - mask*1000, axis=2)
-#            trigram_emb = tf.div_no_nan(tf.reduce_sum(tf.reduce_sum(align_emb, axis=2), axis=2), tf.count_nonzero(seq, axis=2, dtype=tf.float32, keepdims=True))
-#            h = tf.tanh(trigram_emb)
-#        elif self._aggregation == 'region':
-#            # Context-Word Embedding
-##            print 'align_seq', align_seq
-##            print 'self._U', self._U
-#            align_emb = tf.nn.embedding_lookup(self._U, align_emb)
-#            trigram_emb = tf.expand_dims(trigram_emb, 2)
-#            projected_emb = align_emb * trigram_emb
-#            h = tf.reduce_max(tf.reduce_max(projected_emb, axis=2), axis=2)
+#        h = []
+#        max_len = tf.shape(seq)[1]
+#        paded_seq = tf.cast(tf.pad(seq, self._paddings, "CONSTANT"), dtype=tf.int32)
+#        for i in range(2 * self._region_radius + 1):
+#            h.append(self._trigram_emb_layer[i](paded_seq[:,i:i+max_len,:]))
+#        h = tf.tanh(tf.add_n(h))
 #        return h
+        self._trigram_size = trigram_size
+        self._emb_size = emb_size
+        self._aggregation = aggregation
+        self._region_radius = region_radius
+        self._paddings = tf.constant([[0, 0], [self._region_radius, self._region_radius], [0, 0]])
+        if self._aggregation == 'mean':
+#            self._W = []
+#            for i in range(region_radius*2+1):
+#                self._W.append(tf.get_variable(name + '_W_'+str(i), shape=[trigram_size, emb_size],
+#                                      initializer=tf.initializers.glorot_uniform(),
+#                                      trainable=trainable))
+            self._W = tf.get_variable(name + '_W', shape=[(trigram_size-1)*(region_radius*2+1), emb_size],
+                                      initializer=tf.initializers.glorot_uniform(),
+                                      trainable=trainable)
+        if self._aggregation == 'region':
+            self._W = tf.get_variable(name + '_W', shape=[trigram_size, emb_size],
+                                      initializer=tf.initializers.glorot_uniform(),
+                                      trainable=trainable)
+            # Context matrix
+            self._U = tf.get_variable(name + '_U',
+                         shape=[trigram_size*(region_radius*2+1), emb_size],
+                         dtype=tf.float32,
+                         trainable=trainable)
+
+    def _forward(self, seq):
+        max_len = seq.get_shape()[1]
+        region_size = 2*self._region_radius + 1
+        padded_seq = tf.pad(seq, self._paddings, "CONSTANT")
+        s = tf.shape(seq)
+        r = tf.range(region_size)
+        W = tf.concat((tf.zeros(shape=[self._trigram_size, self._emb_size]), self._W), 0)
+        align_emb = tf.map_fn(lambda i: padded_seq[:,i:i+max_len,:]*region_size+tf.ones(s,dtype=tf.int32)*i, r)
+#        align_emb = tf.transpose(align_emb, perm=[1, 2, 3, 0])
+        if self._aggregation == 'mean':
+            align_emb = tf.nn.embedding_lookup(W, align_emb)
+#            print 'align_emb', align_emb
+#            mask = tf.tile(tf.expand_dims(tf.cast(tf.equal(seq, 0), dtype=tf.float32), axis=-1), [1,1,1,self._emb_size])
+#            trigram_emb = tf.reduce_max(trigram_emb - mask*1000, axis=2)
+            trigram_emb = tf.div_no_nan(tf.reduce_sum(tf.reduce_sum(align_emb, axis=0), axis=2), tf.count_nonzero(seq, axis=2, dtype=tf.float32, keepdims=True))
+            h = tf.tanh(trigram_emb)
+        elif self._aggregation == 'region':
+            trigram_emb = tf.nn.embedding_lookup(self._W, seq)
+            # Context-Word Embedding
+#            print 'align_seq', align_seq
+#            print 'self._U', self._U
+            align_emb = tf.nn.embedding_lookup(self._U, align_emb)
+            trigram_emb = tf.expand_dims(trigram_emb, 2)
+            projected_emb = align_emb * trigram_emb
+            h = tf.reduce_max(tf.reduce_max(projected_emb, axis=2), axis=2)
+        return h
 
 
 class CharEmbeddingEncoder(Layer):

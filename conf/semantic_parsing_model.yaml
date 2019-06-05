@@ -30,7 +30,7 @@ default_dataset: &default_dataset
             type: sequence
             delim: " "
             map_table: word2id
-            max_length: 56
+            max_length: 60
             pad: 0
         word_emb:
             index: 4
@@ -161,7 +161,7 @@ model:
     relation2word_train: 'relation2word_train.npy'
     word_emb_size: 300
     use_rnn: True
-    hidden_size: 100
+    hidden_size: 300
     word_aggregation: max # max, mean, end (only for rnn), attention
 
     # Char-level encoder
@@ -187,7 +187,7 @@ model:
     aggregation: max # max, mean, end (only for rnn), attention
 
     # Combination
-    use_highway: False
+    use_highway: True
     
     # Projection to semantic space
     layer_num: 0

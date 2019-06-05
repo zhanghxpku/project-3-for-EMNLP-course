@@ -75,6 +75,9 @@ class EMMetricLayer(Layer):
         if pred_order is not None:
             cvt_order = tf.metrics.accuracy(labels=pred_order, predictions=label_order, weights=cvt_weights, name='cvt_ord_op')
             cvt_total = tf.metrics.accuracy(labels=pred_total, predictions=label_total, weights=cvt_weights, name='cvt_tot_op')
+            prop = (single_em[1] - em[1]) / (single_em[1] - cvt_em[1])
+            em_1 = em[1] + prop * (cvt_total[1] - cvt_em[1])
+            em = (em[0],em_1)
             metrics = {'em_single':single_em, 'em_cvt':cvt_em, 'em': em, 'ord':cvt_order, 'tot':cvt_total}
         else:
             metrics = {'em_single':single_em, 'em_cvt':cvt_em, 'em': em}
