@@ -66,11 +66,16 @@ class EMMetricLayer(Layer):
     def __init__(self, name='EMMetricLayer', **kwargs):
         Layer.__init__(self, name, **kwargs)
 
-    def _forward(self, pred, label, single_weights=None, cvt_weights=None):
+    def _forward(self, pred, label, pred_order=None, label_order=None, pred_total=None, label_total=None, single_weights=None, cvt_weights=None):
         pred = tf.cast(pred, tf.int64)
         label = tf.cast(label, tf.int64)
         em = tf.metrics.accuracy(labels=label, predictions=pred, weights=None, name='acc_op')
         single_em = tf.metrics.accuracy(labels=label, predictions=pred, weights=single_weights, name='single_acc_op')
         cvt_em = tf.metrics.accuracy(labels=label, predictions=pred, weights=cvt_weights, name='cvt_acc_op')
-        metrics = {'em_single':single_em, 'em_cvt':cvt_em, 'em': em}
+        if pred_order is not None:
+            cvt_order = tf.metrics.accuracy(labels=pred_order, predictions=label_order, weights=cvt_weights, name='cvt_ord_op')
+            cvt_total = tf.metrics.accuracy(labels=pred_total, predictions=label_total, weights=cvt_weights, name='cvt_tot_op')
+            metrics = {'em_single':single_em, 'em_cvt':cvt_em, 'em': em, 'ord':cvt_order, 'tot':cvt_total}
+        else:
+            metrics = {'em_single':single_em, 'em_cvt':cvt_em, 'em': em}
         return metrics

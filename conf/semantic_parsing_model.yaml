@@ -17,8 +17,6 @@ default_dataset: &default_dataset
             path: relation.dict
         entity2id: 
             path: entity.dict
-        entity2id: 
-            path: entity.dict
         comb2id: 
             path: comb.dict
 
@@ -38,9 +36,9 @@ default_dataset: &default_dataset
             index: 4
             map_table: word2id_emb
             << : *default_slot
-        word_train:
-            map_table: word2id_train
-            << : *default_slot
+#        word_train:
+#            map_table: word2id_train
+#            << : *default_slot
 #        relation:
 #            index: 2
 #            max_length: 3
@@ -56,8 +54,20 @@ default_dataset: &default_dataset
             max_length: 2
             map_table: entity2id
             << : *default_slot
-        typ:
+        entity_order:
             index: 5
+            type: value
+            value_type: int32
+        entity_mask1:
+            index: 6
+            value_type: float32
+            << : *default_slot
+        entity_mask2:
+            index: 7
+            value_type: float32
+            << : *default_slot
+        typ:
+            index: 8
             type: value
             value_type: int32
 
@@ -129,7 +139,6 @@ model:
     model_name: DependencyModel
     
     # Data
-    max_length: 56
     max_char: 32
     relation_max_len: 12
     
@@ -152,7 +161,7 @@ model:
     relation2word_train: 'relation2word_train.npy'
     word_emb_size: 300
     use_rnn: True
-    hidden_size: 300
+    hidden_size: 100
     word_aggregation: max # max, mean, end (only for rnn), attention
 
     # Char-level encoder
@@ -161,20 +170,21 @@ model:
     relation2char: 'relation2char.npy'
     relation2gram: 'relation2gram.npy'
     char_emb_size: 500
-    encoder: trigram # trigram or CNN
-    region_radius: 1 # only for trigram
-    groups: 1 # only for CNN
-    filters: # only for CNN
+    encoder: trigram # trigram or char
+    encoder_aggregation: mean # only for trigram
+    region_radius: 1 # only for trigram + region emb
+    groups: 1 # only for char
+    filters: # only for char
         - 50
         - 50
         - 50
-    kernel_size: # only for CNN
+    kernel_size: # only for char
         - 3
         - 5
         - 7
     use_rnn_char: False
-    hidden_size_char: 100 # only for rnn
-    aggregation: max # max, mean, attention
+    hidden_size_char: 300 # only for rnn
+    aggregation: max # max, mean, end (only for rnn), attention
 
     # Combination
     use_highway: False
@@ -189,9 +199,9 @@ model:
     batch_size: 100
     optimizer: Adam
     learning_rate: 0.02
-    dropout_rate: 0.05
+    dropout_rate: 0.2
 #    negative_samples: 100
-    use_clip_by_norm: True
+    use_clip_by_norm: False
     decay_step: 309
     decay_rate: 0.9
 

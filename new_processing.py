@@ -125,6 +125,8 @@ def generate_tables():
                     total_line += 1
                     sents.append(tokenize(sents[1],num=True).replace('bbbbb','@').replace('eeeee', '&'))
                     sents[1] = tokenize(sents[1]).replace('bbbbb','@').replace('eeeee', '&')
+                    max_len = max_len if max_len > len(sents[1].split()) else len(sents[1].split())
+                    assert len(sents[1].split()) == len(sents[-1].split()), (len(sents[1].split()),len(sents[-1].split()))
                     if sents[3] == ' '.join(ent_pair):
                         sents.append('0')
 #                                fout_t.write('\n'.join(sents)+'\n')
@@ -133,6 +135,21 @@ def generate_tables():
 #                                fout_f.write('\n'.join(sents)+'\n')
                     ent_pair = []
                     question_type = '0' if question_type=='single' else '1'
+                    count = 0
+                    mask = np.zeros([2,60])
+                    flag = False
+                    for i, c in enumerate(sents[1].split()):
+                        if c == '@':
+                            flag = True
+                        if flag:
+                            mask[count, i] = 1
+                        if c == '&':
+                            count += 1
+                            flag = False
+                            if count == 2:
+                                break
+                    sents.append(' '.join([str(c) for c in mask[0,:]]))
+                    sents.append(' '.join([str(c) for c in mask[1,:]]))
                     fout.write('\t'.join(sents)+'\t'+question_type+'\n'.replace('  ', ' '))
                     for j, item in enumerate(sents[1:3]):
                         if j == 1:
@@ -205,7 +222,6 @@ def generate_tables():
                             question_new.extend(question[int(loc[0])+2:int(loc[1])+3])
                             question_new.extend(['eeeee'])
                             question_new.extend(question[int(loc[1])+3:])
-                            max_len = max_len if max_len > len(question_new) else len(question_new)
                             sents[1] = ' '.join(question_new)
                         
         fout.close()
@@ -501,7 +517,6 @@ def build_pretrained(words, chars, trigrams, relation, read_glove=True):
 
 
 def main():
-    pass
     # seperate into single relation and CVT
 #    seperate_relation()
     words, chars, trigrams, relation, comb, relation_single, words_train = generate_tables()
