@@ -162,6 +162,7 @@ model:
     word_emb_size: 300
     use_rnn: True
     hidden_size: 300
+    use_att_word: False
     word_aggregation: max # max, mean, end (only for rnn), attention
 
     # Char-level encoder
@@ -169,7 +170,7 @@ model:
     word2gram: 'word2gram.npy'
     relation2char: 'relation2char.npy'
     relation2gram: 'relation2gram.npy'
-    char_emb_size: 500
+    char_emb_size: 300
     encoder: trigram # trigram or char
     encoder_aggregation: mean # only for trigram
     region_radius: 1 # only for trigram + region emb
@@ -184,14 +185,15 @@ model:
         - 7
     use_rnn_char: False
     hidden_size_char: 300 # only for rnn
+    use_att_char: False
     aggregation: max # max, mean, end (only for rnn), attention
 
     # Combination
-    use_highway: True
+    use_highway: False
     
     # Projection to semantic space
     layer_num: 0
-    semantic_size: 1000
+    semantic_size: 300
     gamma: 5
     comb2relation: 'comb2relation.npy'
     

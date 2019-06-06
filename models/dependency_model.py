@@ -130,10 +130,17 @@ class DependencyModel(model_base.ModelBase):
             h_pattern_word = tf.div_no_nan(tf.reduce_sum(h_pattern_word*pattern_mask), tf.count_nonzero(patterns, axis=-1, dtype=tf.float32, keepdims=True))
             h_relation_word = tf.div_no_nan(tf.reduce_sum(h_relation_word*relation_mask), tf.count_nonzero(relations, axis=-1, dtype=tf.float32, keepdims=True))
         elif config.word_aggregation == 'end':
-            h_pattern_word = results_fw + results_bw
-            h_relation_word = results_fw_relation + results_bw_relation
+            h_pattern_word = tf.concat([results_fw, results_bw], axis=-1)
+            h_relation_word = tf.concat([results_fw_relation, results_bw_relation], axis=-1)
         elif config.word_aggregation == 'attention':
-            assert False, 'nor implemented error'
+            w_word = tf.get_variable('w_word', shape=[tf.shape(h_pattern_word)[-1]])
+            M_pattern_word = tf.einsum('i,bli->bl', w_word, tf.nn.tanh(h_pattern_word))
+            alpha_pattern_word = tf.nn.softmax(M_pattern_word / tf.math.sqrt(tf.shape(h_pattern_word)[-1]))
+            h_pattern_word = tf.einsum('l,bli->bi', alpha_pattern_word, h_pattern_word)
+            
+            M_relation_word = tf.einsum('i,bli->bl', w_word, tf.nn.tanh(h_relation_word))
+            alpha_relation_word = tf.nn.softmax(M_relation_word / tf.math.sqrt(tf.shape(h_pattern_word)[-1]))
+            h_relation_word = tf.einsum('l,bli->bi', alpha_relation_word, h_relation_word)
 
         # Char-level Encoder
         if config.encoder == 'trigram':
@@ -207,35 +214,42 @@ class DependencyModel(model_base.ModelBase):
             h_pattern_char = tf.div_no_nan(tf.reduce_sum(h_pattern_char*pattern_mask), tf.count_nonzero(patterns, axis=-1, dtype=tf.float32, keepdims=True))
             h_relation_char = tf.div_no_nan(tf.reduce_sum(h_relation_char*relation_mask), tf.count_nonzero(relations, axis=-1, dtype=tf.float32, keepdims=True))
         elif config.word_aggregation == 'end':
-            h_pattern_char = results_fw_char + results_bw_char
-            h_relation_char = results_fw_relation_char + results_bw_relation_char
+            h_pattern_char = tf.concat([results_fw_char, results_bw_char], axis=-1)
+            h_relation_char = tf.concat([results_fw_relation_char, results_bw_relation_char], axis=-1)
         elif config.aggregation == 'attention':
-            assert False, 'nor implemented error'
+            w_char = tf.get_variable('w_char', shape=[tf.shape(h_pattern_char)[-1]])
+            M_pattern_char = tf.einsum('i,bli->bl', w_char, tf.nn.tanh(h_pattern_char))
+            alpha_pattern_char = tf.nn.softmax(M_pattern_char / tf.math.sqrt(tf.shape(h_pattern_char)[-1]))
+            h_pattern_char = tf.einsum('l,bli->bi', alpha_pattern_char, h_pattern_char)
+            
+            M_relation_char = tf.einsum('i,bli->bl', w_char, tf.nn.tanh(h_relation_char))
+            alpha_relation_char = tf.nn.softmax(M_relation_char / tf.math.sqrt(tf.shape(h_pattern_char)[-1]))
+            h_relation_char = tf.einsum('l,bli->bi', alpha_relation_char, h_relation_char)
         
-        # [batch_size, max_len, char_emb_size+word_emb_size]
-        h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)
-        # [relation_size, relation_max_len, char_emb_size+word_emb_size]
-        h_relation = tf.concat([h_relation_char, h_relation_word], axis=-1)
-        
-        h_entity1 = tf.expand_dims(tf.concat([h_entity1_char, h_entity1_word], axis=-1), axis=1)
-        h_entity2 = tf.expand_dims(tf.concat([h_entity2_char, h_entity2_word], axis=-1), axis=1)
+#        # [batch_size, max_len, char_emb_size+word_emb_size]
+#        h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)
+#        # [relation_size, relation_max_len, char_emb_size+word_emb_size]
+#        h_relation = tf.concat([h_relation_char, h_relation_word], axis=-1)
 #        
-#        h_entity1 = tf.expand_dims(h_entity1_word, axis=1)
-#        h_entity2 = tf.expand_dims(h_entity2_word, axis=1)
-#        # [batch_size, 2, emb_size]
+#        h_entity1 = tf.expand_dims(tf.concat([h_entity1_char, h_entity1_word], axis=-1), axis=1)
+#        h_entity2 = tf.expand_dims(tf.concat([h_entity2_char, h_entity2_word], axis=-1), axis=1)
+#        
+        h_entity1 = tf.expand_dims(h_entity1_char, axis=1)
+        h_entity2 = tf.expand_dims(h_entity2_char, axis=1)
+        # [batch_size, 2, emb_size]
         h_entity = tf.concat([h_entity1, h_entity2], axis=1)
-#        
-#        h_pattern = h_pattern_word
-#        h_relation = h_relation_word
+#
+        h_pattern = h_pattern_char
+        h_relation = h_relation_char
 
         if config.use_highway:
             dense_t = tf.layers.Dense(h_pattern.get_shape()[-1],
                                       activation=tf.math.sigmoid,
-                                      kernel_initializer=tf.initializers.glorot_uniform(),
+                                      kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=True, seed=None, dtype=tf.float32),
                                       name='dense_t')
             dense_h = tf.layers.Dense(h_pattern.get_shape()[-1],
                                       activation=tf.nn.tanh,
-                                      kernel_initializer=tf.initializers.glorot_uniform(),
+                                      kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=True, seed=None, dtype=tf.float32),
                                       name='dense_h')
             t_pattern = dense_t(h_pattern)
             h_pattern = t_pattern * dense_h(h_pattern) + (1 - t_pattern) * h_pattern
@@ -248,11 +262,11 @@ class DependencyModel(model_base.ModelBase):
             dense_layers.append(tf.layers.Dense(config.semantic_size, name='dense_'+str(i),
                                         activation = tf.nn.tanh,
                                         use_bias = True,
-                                        kernel_initializer=tf.initializers.glorot_uniform()))
+                                        kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=True, seed=None, dtype=tf.float32)))
         semantic_proj = tf.layers.Dense(config.semantic_size, name='semantic_proj',
                                         activation = tf.nn.tanh,
                                         use_bias = True,
-                                        kernel_initializer=tf.initializers.glorot_uniform())
+                                        kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=True, seed=None, dtype=tf.float32))
 
         # [batch_size, semantic_size]
         for i in range(config.layer_num):
@@ -268,7 +282,7 @@ class DependencyModel(model_base.ModelBase):
         # [single_size+comb_size, 3, semantic_size]
         h_relation_comb = tf.nn.embedding_lookup(h_relation, self.comb2relation_layer)
         w = tf.get_variable('w', shape=[3])
-        h_relation = tf.einsum('j,ijk->ik', w, h_relation_comb)
+        h_relation = tf.einsum('j,ijk->ik', tf.nn.softmax(w), h_relation_comb)
 #        relation = tf.reduce_max(relation_comb, axis=1)
         # [relation_size, semantic_size]
         relation = semantic_proj(h_relation)
@@ -337,5 +351,5 @@ class DependencyModel(model_base.ModelBase):
         metric_layer = layers.EMMetricLayer()
         infer_total_op = self.infer_op * 2 + self.infer_order_op
         entity_total = tags * 2 + entity_order
-#        self.metric = metric_layer(self.infer_op,tags,single_weights=tf.cast(1-inputs['typ'],tf.float32), cvt_weights=tf.cast(inputs['typ'],tf.float32))
-        self.metric = metric_layer(self.infer_op,tags,self.infer_order_op,entity_order,infer_total_op,entity_total,single_weights=tf.cast(1-inputs['typ'],tf.float32), cvt_weights=tf.cast(inputs['typ'],tf.float32))
+        self.metric = metric_layer(self.infer_op,tags,single_weights=tf.cast(1-inputs['typ'],tf.float32), cvt_weights=tf.cast(inputs['typ'],tf.float32))
+#        self.metric = metric_layer(self.infer_op,tags,self.infer_order_op,entity_order,infer_total_op,entity_total,single_weights=tf.cast(1-inputs['typ'],tf.float32), cvt_weights=tf.cast(inputs['typ'],tf.float32))
