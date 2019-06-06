@@ -134,13 +134,14 @@ class DependencyModel(model_base.ModelBase):
             h_relation_word = tf.concat([results_fw_relation, results_bw_relation], axis=-1)
         elif config.word_aggregation == 'attention':
             w_word = tf.get_variable('w_word', shape=[tf.shape(h_pattern_word)[-1]])
+            w = tf.math.sqrt(tf.cast(tf.shape(h_pattern_word)[-1],dtype=tf.float32))
             M_pattern_word = tf.einsum('i,bli->bl', w_word, tf.nn.tanh(h_pattern_word))
-            alpha_pattern_word = tf.nn.softmax(M_pattern_word / tf.math.sqrt(tf.shape(h_pattern_word)[-1]))
-            h_pattern_word = tf.einsum('l,bli->bi', alpha_pattern_word, h_pattern_word)
+            alpha_pattern_word = tf.nn.softmax(M_pattern_word / w)
+            h_pattern_word = tf.einsum('bl,bli->bi', alpha_pattern_word, h_pattern_word)
             
             M_relation_word = tf.einsum('i,bli->bl', w_word, tf.nn.tanh(h_relation_word))
-            alpha_relation_word = tf.nn.softmax(M_relation_word / tf.math.sqrt(tf.shape(h_pattern_word)[-1]))
-            h_relation_word = tf.einsum('l,bli->bi', alpha_relation_word, h_relation_word)
+            alpha_relation_word = tf.nn.softmax(M_relation_word / w)
+            h_relation_word = tf.einsum('bl,bli->bi', alpha_relation_word, h_relation_word)
 
         # Char-level Encoder
         if config.encoder == 'trigram':
@@ -217,14 +218,15 @@ class DependencyModel(model_base.ModelBase):
             h_pattern_char = tf.concat([results_fw_char, results_bw_char], axis=-1)
             h_relation_char = tf.concat([results_fw_relation_char, results_bw_relation_char], axis=-1)
         elif config.aggregation == 'attention':
-            w_char = tf.get_variable('w_char', shape=[tf.shape(h_pattern_char)[-1]])
+            w_char = tf.get_variable('w_char', shape=[h_pattern_char.get_shape()[-1]])
+            d = tf.math.sqrt(tf.cast(tf.shape(h_pattern_char)[-1],dtype=tf.float32))
             M_pattern_char = tf.einsum('i,bli->bl', w_char, tf.nn.tanh(h_pattern_char))
-            alpha_pattern_char = tf.nn.softmax(M_pattern_char / tf.math.sqrt(tf.shape(h_pattern_char)[-1]))
-            h_pattern_char = tf.einsum('l,bli->bi', alpha_pattern_char, h_pattern_char)
+            alpha_pattern_char = tf.nn.softmax(M_pattern_char / d)
+            h_pattern_char = tf.einsum('bl,bli->bi', alpha_pattern_char, h_pattern_char)
             
             M_relation_char = tf.einsum('i,bli->bl', w_char, tf.nn.tanh(h_relation_char))
-            alpha_relation_char = tf.nn.softmax(M_relation_char / tf.math.sqrt(tf.shape(h_pattern_char)[-1]))
-            h_relation_char = tf.einsum('l,bli->bi', alpha_relation_char, h_relation_char)
+            alpha_relation_char = tf.nn.softmax(M_relation_char / d)
+            h_relation_char = tf.einsum('bl,bli->bi', alpha_relation_char, h_relation_char)
         
 #        # [batch_size, max_len, char_emb_size+word_emb_size]
 #        h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)

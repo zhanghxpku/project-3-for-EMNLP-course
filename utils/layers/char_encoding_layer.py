@@ -78,7 +78,6 @@ class TrigramEmbeddingEncoder(Layer):
                          trainable=trainable)
 
     def _forward(self, seq):
-#        max_len = seq.get_shape()[1]
         region_size = 2*self._region_radius + 1
         padded_seq = tf.pad(seq, self._paddings, "CONSTANT")
         s = tf.shape(seq)
@@ -88,9 +87,9 @@ class TrigramEmbeddingEncoder(Layer):
         if self._aggregation == 'mean':
             W = tf.concat((tf.zeros(shape=[region_size, self._emb_size]), self._W), 0)
             align_emb = tf.nn.embedding_lookup(W, align_emb)
-#            print 'align_emb', align_emb
+#            trigram_emb = tf.reduce_sum(align_emb,axis=[2,3])
             trigram_emb = tf.div_no_nan(tf.reduce_sum(align_emb,axis=[2,3]), tf.count_nonzero(seq, axis=2, dtype=tf.float32, keepdims=True))
-            h = tf.tanh(trigram_emb)
+            h = tf.tanh(trigram_emb) 
         elif self._aggregation == 'region':
             W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W), 0)
             trigram_emb = tf.nn.embedding_lookup(W, seq)

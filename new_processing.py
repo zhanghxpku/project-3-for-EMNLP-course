@@ -520,8 +520,8 @@ def main():
     # seperate into single relation and CVT
 #    seperate_relation()
     words, chars, trigrams, relation, comb, relation_single, words_train = generate_tables()
-#    build_maps(words, chars, trigrams, relation, comb, relation_single, words_train)
-#    build_pretrained(words, chars, trigrams, relation, read_glove=True)
+    build_maps(words, chars, trigrams, relation, comb, relation_single, words_train)
+    build_pretrained(words, chars, trigrams, relation, read_glove=False)
 
     
 if '__main__' == __name__:

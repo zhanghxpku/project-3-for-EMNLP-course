@@ -162,7 +162,6 @@ model:
     word_emb_size: 300
     use_rnn: True
     hidden_size: 300
-    use_att_word: False
     word_aggregation: max # max, mean, end (only for rnn), attention
 
     # Char-level encoder
@@ -185,7 +184,6 @@ model:
         - 7
     use_rnn_char: False
     hidden_size_char: 300 # only for rnn
-    use_att_char: False
     aggregation: max # max, mean, end (only for rnn), attention
 
     # Combination
@@ -200,10 +198,10 @@ model:
     # Training
     batch_size: 100
     optimizer: Adam
-    learning_rate: 0.02
-    dropout_rate: 0.2
+    learning_rate: 0.005
+    dropout_rate: 0.05
 #    negative_samples: 100
-    use_clip_by_norm: False
+    use_clip_by_norm: True
     decay_step: 309
     decay_rate: 0.9
 
