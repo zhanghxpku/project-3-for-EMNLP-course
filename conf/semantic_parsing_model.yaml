@@ -170,7 +170,7 @@ model:
     word2gram: 'word2gram.npy'
     relation2char: 'relation2char.npy'
     relation2gram: 'relation2gram.npy'
-    char_emb_size: 300
+    char_emb_size: 1000
     encoder: trigram # trigram or char
     encoder_aggregation: mean # only for trigram
     region_radius: 1 # only for trigram + region emb
@@ -193,7 +193,7 @@ model:
     
     # Projection to semantic space
     layer_num: 0
-    semantic_size: 300
+    semantic_size: 1000
     gamma: 5
     comb2relation: 'comb2relation.npy'
     

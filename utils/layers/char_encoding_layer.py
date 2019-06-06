@@ -57,6 +57,7 @@ class TrigramEmbeddingEncoder(Layer):
         self._aggregation = aggregation
         self._region_radius = region_radius
         self._paddings = tf.constant([[0, 0], [self._region_radius, self._region_radius], [0, 0]])
+        self._bias = np.tile(np.array([i for i in range(region_radius*2+1)]),(1,1,1,1))
         if self._aggregation == 'mean':
 #            self._W = []
 #            for i in range(region_radius*2+1):
@@ -82,16 +83,13 @@ class TrigramEmbeddingEncoder(Layer):
         padded_seq = tf.pad(seq, self._paddings, "CONSTANT")
         s = tf.shape(seq)
         r = tf.range(region_size)
-        align_emb = tf.map_fn(lambda i: padded_seq[:,i:i+s[1],:]*region_size+tf.ones(s,dtype=tf.int32)*i, r)
-#        align_emb = tf.transpose(align_emb, perm=[1, 2, 3, 0])
+        align_emb = tf.map_fn(lambda i: padded_seq[:,i:i+s[1],:], r)
+        align_emb = tf.transpose(align_emb, perm=[1, 2, 3, 0])*region_size + self._bias
         if self._aggregation == 'mean':
             W = tf.concat((tf.zeros(shape=[region_size, self._emb_size]), self._W), 0)
-#            align_emb = tf.map_fn(lambda i: padded_seq[:,i:i+max_len,:]+tf.ones(s,dtype=tf.int32)*i*self._trigram_size, r)
             align_emb = tf.nn.embedding_lookup(W, align_emb)
 #            print 'align_emb', align_emb
-#            mask = tf.tile(tf.expand_dims(tf.cast(tf.equal(seq, 0), dtype=tf.float32), axis=-1), [1,1,1,self._emb_size])
-#            trigram_emb = tf.reduce_max(trigram_emb - mask*1000, axis=2)
-            trigram_emb = tf.div_no_nan(tf.reduce_sum(tf.reduce_sum(align_emb, axis=0), axis=2), tf.count_nonzero(seq, axis=2, dtype=tf.float32, keepdims=True))
+            trigram_emb = tf.div_no_nan(tf.reduce_sum(align_emb,axis=[2,3]), tf.count_nonzero(seq, axis=2, dtype=tf.float32, keepdims=True))
             h = tf.tanh(trigram_emb)
         elif self._aggregation == 'region':
             W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W), 0)
