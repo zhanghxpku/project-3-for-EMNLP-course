@@ -7,12 +7,16 @@ default_dataset: &default_dataset
     buffer_size: 40000
     shuffle: True
     map_tables:
+        char2id:
+            path: char.dict
+        gram2id:
+            path: trigram.dict
         word2id:
             path: word.dict
         word2id_emb:
             path: word_emb.dict
-        word2id_train:
-            path: word_train.dict
+#        word2id_train:
+#            path: word_train.dict
         relation2id: 
             path: relation.dict
         entity2id: 
@@ -25,51 +29,55 @@ default_dataset: &default_dataset
             index: 0
             type: value
             value_type: int32
-        word: &default_slot
+        char: &default_slot
             index: 1
             type: sequence
             delim: " "
-            map_table: word2id
-            max_length: 60
+            map_table: char2id
+            max_length: 389
             pad: 0
+        gram:
+            index: 2
+            map_table: gram2id
+            << : *default_slot
+        word: 
+            index: 3
+            map_table: word2id
+            << : *default_slot
         word_emb:
-            index: 4
+            index: 3
+            max_length: 60
             map_table: word2id_emb
             << : *default_slot
 #        word_train:
 #            map_table: word2id_train
 #            << : *default_slot
-#        relation:
-#            index: 2
-#            max_length: 3
-#            map_table: relation2id
-#            << : *default_slot
         relation:
-            index: 2
+            index: 4
             type: value
             map_table: comb2id
             << : *default_slot
         entity:
-            index: 3
+            index: 5
             max_length: 2
             map_table: entity2id
             << : *default_slot
-        entity_order:
-            index: 5
-            type: value
-            value_type: int32
-        entity_mask1:
-            index: 6
-            value_type: float32
-            << : *default_slot
-        entity_mask2:
-            index: 7
-            value_type: float32
-            << : *default_slot
         typ:
-            index: 8
+            index: 6
             type: value
             value_type: int32
+        entity_order:
+            index: 7
+            type: value
+            value_type: int32
+#        entity_mask1:
+#            index: 6
+#            value_type: float32
+#            << : *default_slot
+#        entity_mask2:
+#            index: 7
+#            value_type: float32
+#            << : *default_slot
 
 pred_dataset: &pred_dataset
     type: PythonDataset
@@ -139,52 +147,62 @@ model:
     model_name: DependencyModel
     
     # Data
-    max_char: 32
+    relation_max_char: 94
     relation_max_len: 12
     
-    char_size: 148
-    trigram_size: 6293
-    vocab_size: 21332
-    vocab_size_emb: 16908
-    vocab_size_train: 7782
+    char_size: 206
+    trigram_size: 10824
+    vocab_size: 18366
+    vocab_size_emb: 15701
+#    vocab_size_train: 7782
     relation_size: 1562
     comb_size: 436
     single_size: 1229
 
     # Word-level encoder
-    use_word_pretrain_emb: True
-    word_emb_finetune: True
-    word2vec_emb: 'embedding.300d'
-    word2gram_emb: 'word2gram_emb.npy'
-    relation2word: 'relation2word.npy'
-    relation2word_emb: 'relation2word_emb.npy'
-    relation2word_train: 'relation2word_train.npy'
-    word_emb_size: 300
-    use_rnn: True
-    hidden_size: 300
-    word_aggregation: max # max, mean, end (only for rnn), attention
+    word:
+        use_word_pretrain_emb: True
+        word_emb_finetune: True
+        word2vec_emb: 'embedding.300d'
+        relation2word: 'relation2word.npy'
+        relation2word_emb: 'relation2word_emb.npy'
+    #    relation2word_train: 'relation2word_train.npy'
+        emb_size: 300
+        encoder: none # none, mean, region, CNN
+        region_radius: 2 # only for mean and region
+        groups: 1 # only for CNN
+        filters: # only for CNN
+            - 50
+            - 50
+            - 50
+        kernel_size: # only for CNN
+            - 3
+            - 5
+            - 7
+        use_rnn: False
+        hidden_size: 300 # only for use_rnn
+        aggregation: max # max, mean, end (only for use_rnn), attention
 
     # Char-level encoder
-    word2char: 'word2char.npy'
-    word2gram: 'word2gram.npy'
-    relation2char: 'relation2char.npy'
-    relation2gram: 'relation2gram.npy'
-    char_emb_size: 1000
-    encoder: trigram # trigram or char
-    encoder_aggregation: mean # only for trigram
-    region_radius: 1 # only for trigram + region emb
-    groups: 1 # only for char
-    filters: # only for char
-        - 50
-        - 50
-        - 50
-    kernel_size: # only for char
-        - 3
-        - 5
-        - 7
-    use_rnn_char: False
-    hidden_size_char: 300 # only for rnn
-    aggregation: max # max, mean, end (only for rnn), attention
+    char:
+        emb_size: 500
+        relation2char: 'relation2char.npy'
+        relation2gram: 'relation2gram.npy'
+        encoder_type: trigram # trigram or char
+        encoder: mean # none, mean, region, CNN
+        region_radius: 2 # only for mean and region
+        groups: 1 # only for CNN
+        filters: # only for CNN
+            - 50
+            - 50
+            - 50
+        kernel_size: # only for CNN
+            - 3
+            - 5
+            - 7
+        use_rnn: False
+        hidden_size: 300 # only for use_rnn
+        aggregation: max # max, mean, end (only for use_rnn), attention
 
     # Combination
     use_highway: False
