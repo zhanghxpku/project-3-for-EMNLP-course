@@ -73,11 +73,13 @@ class RegionEncoder(Layer):
 
 class CNNEncoder(Layer):
     def __init__(self, vocab_size, emb_size, groups, filters, kernel_size,
-                 trainable=True, name="cnn_encoder", initializer=None, **kwargs):
+                 trainable=True, name="cnn_encoder", initializer=None, emb=None, **kwargs):
         Layer.__init__(self, name, **kwargs)
-        self._W = tf.get_variable(name + '_W', shape=[vocab_size - 1, emb_size],
-                                  initializer=tf.contrib.layers.xavier_initializer(uniform=True, seed=None, dtype=tf.float32),
-                                  trainable=trainable)
+        if emb is None:
+            self._W = tf.get_variable(name + '_W', shape=[vocab_size - 1, emb_size],
+                                      initializer=tf.contrib.layers.xavier_initializer(uniform=True, seed=None, dtype=tf.float32),
+                                      trainable=trainable)
+        self._emb = emb
         self._emb_size = emb_size
         self._groups = groups
         self._filters = filters
@@ -96,9 +98,12 @@ class CNNEncoder(Layer):
 
     def _forward(self, seq):
         nwords = tf.count_nonzero(seq, axis=-1, dtype=tf.float32, keepdims=True)
-        W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W), 0)
-        # [batch_size, max_len, emb_size]
-        char_emb = tf.nn.embedding_lookup(W, seq)
+        if self._emb is None:
+            W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W), 0)
+            # [batch_size, max_len, emb_size]
+            char_emb = tf.nn.embedding_lookup(W, seq)
+        else:
+            char_emb = self._emb(seq, zero_forward=True)
         h = []
         for i in range(self._groups):
             # [batch_size, max_len, filters[i]]

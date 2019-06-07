@@ -16,7 +16,7 @@ default_dataset: &default_dataset
         word2id_emb:
             path: word_emb.dict
 #        word2id_train:
-#            path: word_train.dict
+#            path: word.dict
         relation2id: 
             path: relation.dict
         entity2id: 
@@ -42,6 +42,7 @@ default_dataset: &default_dataset
             << : *default_slot
         word: 
             index: 3
+            max_length: 60
             map_table: word2id
             << : *default_slot
         word_emb:
@@ -151,10 +152,10 @@ model:
     relation_max_len: 12
     
     char_size: 206
-    trigram_size: 10824
-    vocab_size: 18366
-    vocab_size_emb: 15701
-#    vocab_size_train: 7782
+    trigram_size: 10771
+    vocab_size: 19947
+    vocab_size_emb: 16908
+    vocab_size_train: 18490
     relation_size: 1562
     comb_size: 436
     single_size: 1229
@@ -164,7 +165,7 @@ model:
         use_word_pretrain_emb: True
         word_emb_finetune: True
         word2vec_emb: 'embedding.300d'
-        relation2word: 'relation2word.npy'
+#        relation2word: 'relation2word.npy'
         relation2word_emb: 'relation2word_emb.npy'
     #    relation2word_train: 'relation2word_train.npy'
         emb_size: 300
@@ -189,7 +190,7 @@ model:
         relation2char: 'relation2char.npy'
         relation2gram: 'relation2gram.npy'
         encoder_type: trigram # trigram or char
-        encoder: mean # none, mean, region, CNN
+        encoder: region # none, mean, region, CNN
         region_radius: 2 # only for mean and region
         groups: 1 # only for CNN
         filters: # only for CNN
