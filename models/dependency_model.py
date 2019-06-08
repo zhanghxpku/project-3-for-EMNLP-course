@@ -106,8 +106,8 @@ class DependencyModel(model_base.ModelBase):
             nwords = tf.count_nonzero(patterns_word, axis=-1, dtype=tf.int32)
             relation_nwords = tf.count_nonzero(relations_word, axis=-1, dtype=tf.int32)
             # Bi-LSTM
-            lstm_cell_fw = tf.contrib.rnn.LSTMBlockFusedCell(config.hidden_size)
-            lstm_cell_bw = tf.contrib.rnn.LSTMBlockFusedCell(config.hidden_size)
+            lstm_cell_fw = tf.contrib.rnn.LSTMBlockFusedCell(config.word.hidden_size)
+            lstm_cell_bw = tf.contrib.rnn.LSTMBlockFusedCell(config.word.hidden_size)
             lstm_cell_bw = tf.contrib.rnn.TimeReversedFusedRNN(lstm_cell_bw)
             with tf.variable_scope('lstm1'):
                 output_fw, (_, results_fw) = lstm_cell_fw(h_pattern_word, dtype=tf.float32, sequence_length=nwords)
@@ -226,8 +226,8 @@ class DependencyModel(model_base.ModelBase):
             nwords = tf.count_nonzero(chars, axis=-1, dtype=tf.int32)
             relation_nwords = tf.count_nonzero(relations_char, axis=-1, dtype=tf.int32)
             # Bi-LSTM
-            lstm_cell_fw_char = tf.contrib.rnn.LSTMBlockFusedCell(config.hidden_size)
-            lstm_cell_bw_char = tf.contrib.rnn.LSTMBlockFusedCell(config.hidden_size)
+            lstm_cell_fw_char = tf.contrib.rnn.LSTMBlockFusedCell(config.char.hidden_size)
+            lstm_cell_bw_char = tf.contrib.rnn.LSTMBlockFusedCell(config.char.hidden_size)
             lstm_cell_bw_char = tf.contrib.rnn.TimeReversedFusedRNN(lstm_cell_bw_char)
             with tf.variable_scope('lstm3'):
                 output_fw_char, (_, results_fw_char) = lstm_cell_fw_char(h_pattern_char, dtype=tf.float32, sequence_length=nwords)
@@ -279,13 +279,13 @@ class DependencyModel(model_base.ModelBase):
             M_relation_char = tf.einsum('i,bli->bl', w_char, tf.nn.tanh(h_relation_char))
             alpha_relation_char = tf.nn.softmax(M_relation_char / d)
             h_relation_char = tf.einsum('bl,bli->bi', alpha_relation_char, h_relation_char)
-        
-#        # [batch_size, max_len, char_emb_size+word_emb_size]
-#        h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)
-#        # [relation_size, relation_max_len, char_emb_size+word_emb_size]
-#        h_relation = tf.concat([h_relation_char, h_relation_word], axis=-1)
-        # #########################################################################
-#        
+
+        # #########################################################################       
+        # [batch_size, max_len, char_emb_size+word_emb_size]
+        h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)
+        # [relation_size, relation_max_len, char_emb_size+word_emb_size]
+        h_relation = tf.concat([h_relation_char, h_relation_word], axis=-1)
+
 #        h_entity1 = tf.expand_dims(tf.concat([h_entity1_char, h_entity1_word], axis=-1), axis=1)
 #        h_entity2 = tf.expand_dims(tf.concat([h_entity2_char, h_entity2_word], axis=-1), axis=1)
 #        
@@ -294,8 +294,8 @@ class DependencyModel(model_base.ModelBase):
 #        # [batch_size, 2, emb_size]
 #        h_entity = tf.concat([h_entity1, h_entity2], axis=1)
 #
-        h_pattern = h_pattern_char
-        h_relation = h_relation_char
+#        h_pattern = h_pattern_char
+#        h_relation = h_relation_char
 
         if config.use_highway:
             dense_t = tf.layers.Dense(h_pattern.get_shape()[-1],

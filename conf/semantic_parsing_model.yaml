@@ -71,14 +71,16 @@ default_dataset: &default_dataset
             index: 7
             type: value
             value_type: int32
-#        entity_mask1:
-#            index: 6
-#            value_type: float32
-#            << : *default_slot
-#        entity_mask2:
-#            index: 7
-#            value_type: float32
-#            << : *default_slot
+        entity_mask1:
+            index: 6
+            max_length: 2
+            value_type: float32
+            << : *default_slot
+        entity_mask2:
+            index: 7
+            max_length: 2
+            value_type: float32
+            << : *default_slot
 
 pred_dataset: &pred_dataset
     type: PythonDataset
@@ -165,7 +167,7 @@ model:
         use_word_pretrain_emb: True
         word_emb_finetune: True
         word2vec_emb: 'embedding.300d'
-#        relation2word: 'relation2word.npy'
+        relation2word: 'relation2word.npy'
         relation2word_emb: 'relation2word_emb.npy'
     #    relation2word_train: 'relation2word_train.npy'
         emb_size: 300
@@ -174,39 +176,31 @@ model:
         groups: 1 # only for CNN
         filters: # only for CNN
             - 50
-            - 50
-            - 50
         kernel_size: # only for CNN
             - 3
-            - 5
-            - 7
-        use_rnn: False
+        use_rnn: True
         hidden_size: 300 # only for use_rnn
         aggregation: max # max, mean, end (only for use_rnn), attention
 
     # Char-level encoder
     char:
-        emb_size: 500
+        emb_size: 300
         relation2char: 'relation2char.npy'
         relation2gram: 'relation2gram.npy'
-        encoder_type: trigram # trigram or char
-        encoder: region # none, mean, region, CNN
-        region_radius: 2 # only for mean and region
+        encoder_type: char # trigram or char
+        encoder: none # none, mean, region, CNN
+        region_radius: 3 # only for mean and region
         groups: 1 # only for CNN
         filters: # only for CNN
-            - 50
-            - 50
-            - 50
+            - 500
         kernel_size: # only for CNN
             - 3
-            - 5
-            - 7
-        use_rnn: False
+        use_rnn: True
         hidden_size: 300 # only for use_rnn
         aggregation: max # max, mean, end (only for use_rnn), attention
 
     # Combination
-    use_highway: False
+    use_highway: True
     
     # Projection to semantic space
     layer_num: 0
@@ -217,7 +211,7 @@ model:
     # Training
     batch_size: 100
     optimizer: Adam
-    learning_rate: 0.005
+    learning_rate: 0.001
     dropout_rate: 0.05
 #    negative_samples: 100
     use_clip_by_norm: True
@@ -229,7 +223,7 @@ estimator:
     type: PythonEstimator
     train_dataset: *train_dataset
     eval_datasets:
-        # - *train_dataset
+#        - *train_dataset
         - *dev_dataset
         # - *test_dataset
     eval_to_file: True
