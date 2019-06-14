@@ -257,6 +257,7 @@ class PythonEstimator(object):
 #            for res in results:
 #                print res['pred']
             if hasattr(self.config, 'eval_to_file') and self.config.eval_to_file:
+                char2id = {i : line.strip() for i, line in enumerate(open(self.config.char2id, 'r'))}
                 word2id = {i : line.strip() for i, line in enumerate(open(self.config.word2id, 'r'))}
                 word2id_emb = {i : line.strip() for i, line in enumerate(open(self.config.word2id_emb, 'r'))}
                 relation2id = {i : line.strip() for i, line in enumerate(open(self.config.comb2id, 'r'))}
@@ -268,6 +269,7 @@ class PythonEstimator(object):
                     if res['word'] is None:
                         break
                     idx = res['idx']
+                    char = map(lambda x: char2id.get(x, '<UNK>'), res['char'])
                     word = map(lambda x: word2id.get(x, '<UNK>'), res['word'])
                     word_emb = map(lambda x: word2id_emb.get(x, '<UNK>'), res['word_emb'])
                     relation = map(lambda x: relation2id.get(x, '<UNK>'), [res['relation']])
@@ -280,7 +282,12 @@ class PythonEstimator(object):
                         if res['word_emb'][i] == 0:
                             word_len = i
                             break
-                    fout.write('\n'.join([str(idx),' '.join(word[:word_len]),' '.join(word_emb[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
+                    char_len = 0
+                    for i in range(len(res['char'])):
+                        if res['char'][i] == 0:
+                            char_len = i
+                            break
+                    fout.write('\n'.join([str(idx),' '.join(word[:word_len]),' '.join(char[:char_len]),' '.join(word_emb[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
                     res['word_emb'] = [str(c) for c in res['word_emb']]
                     res['relation'] = str(res['relation'])
                     res['entity'] = [str(c) for c in res['entity']]

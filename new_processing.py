@@ -111,6 +111,7 @@ def generate_tables():
     entity_comb = set()
     max_len = 0
     max_char = 0
+    char_len = {}
     
     for idx, ds in enumerate(dataset):
         total_line = 0
@@ -131,6 +132,10 @@ def generate_tables():
                     c, t = get_chars(sents_char)
                     sents[1] = ' '.join(c)
                     sents.append(' '.join(t))
+                    if len(sents_char) in char_len:
+                        char_len[len(sents_char)] += 1
+                    else:
+                        char_len[len(sents_char)] = 1
                     max_char = max_char if max_char > len(sents_char) else len(sents_char)
                     if sents[3] == ' '.join(ent_pair):
                         sents.append('0')
@@ -156,8 +161,28 @@ def generate_tables():
                         elif c == '&':
                             mask[count*2+1] = i
                             count += 1
-                    sents_new.append(' '.join([str(int(i)) for i in mask]))
-                    sents_new.append(' '.join([str(int(i)) for i in mask_char]))
+                    
+                    entity_2 = np.zeros([len(sents_new[3])])
+                    for i in range(int(mask[0]), int(mask[1])):
+                        entity_2[i] = 1
+                    sents_new.append(' '.join([str(int(i)) for i in entity_2]))
+                    entity_2 = np.zeros([len(sents_new[3])])
+                    for i in range(int(mask[2]), int(mask[3])):
+                        entity_2[i] = 1
+                    sents_new.append(' '.join([str(int(i)) for i in entity_2]))
+
+                    entity_1 = np.zeros([len(sents_new[1])])
+                    for i in range(int(mask_char[0]), int(mask_char[1])):
+                        entity_1[i] = 1
+                    sents_new.append(' '.join([str(int(i)) for i in entity_1]))
+                    entity_1 = np.zeros([len(sents_new[1])])
+                    for i in range(int(mask_char[2]), int(mask_char[3])):
+                        entity_1[i] = 1
+                    sents_new.append(' '.join([str(int(i)) for i in entity_1]))
+                    
+#                    sents_new.append(' '.join([str(int(i)) for i in mask]))
+#                    sents_new.append(' '.join([str(int(i)) for i in mask_char]))
+
                     fout.write('\t'.join(sents_new)+'\n'.replace('  ', ' '))
                     if idx == 0:
                         chars.update(sents_new[1].split())
@@ -319,7 +344,7 @@ def generate_tables():
         fout.write(r+'\n')
     fout.close()
     
-    return words, chars, trigrams, relation, relation_comb, relation_single, max_len, max_char, words_all
+    return words, chars, trigrams, relation, relation_comb, relation_single, max_len, max_char, words_all, char_len
 
 def build_maps(words, chars, trigrams, relation, relation_comb, relation_single, max_len, max_char, words_all):
     char2id = {}
@@ -468,13 +493,13 @@ def build_pretrained(words, chars, trigrams, relation, read_glove=True):
     np.save('relation2word_emb', relation2word)
 
 
-def main():
-    # seperate into single relation and CVT
-#    seperate_relation()
-    words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_all = generate_tables()
-#    build_maps(words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_all)
-#    build_pretrained(words_all, chars, trigrams, relation, read_glove=False)
-
-    
-if '__main__' == __name__:
-    main()
+#def main():
+# seperate into single relation and CVT
+#seperate_relation()
+words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_all, char_len = generate_tables()
+#build_maps(words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_all)
+#build_pretrained(words_all, chars, trigrams, relation, read_glove=False)
+#
+#    
+#if '__main__' == __name__:
+#    main()

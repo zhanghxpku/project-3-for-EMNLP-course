@@ -34,7 +34,7 @@ default_dataset: &default_dataset
             type: sequence
             delim: " "
             map_table: char2id
-            max_length: 389
+            max_length: 264 # 389
             pad: 0
         gram:
             index: 2
@@ -71,14 +71,37 @@ default_dataset: &default_dataset
             index: 7
             type: value
             value_type: int32
+#        # Word
+#        entity_mask1:
+#            index: 8
+#            max_length: 4
+#            value_type: int32
+#            << : *default_slot
+#        entity_mask2:
+#            index: 9
+#            max_length: 4
+#            value_type: int32
+#            << : *default_slot
+        # Word
         entity_mask1:
-            index: 6
-            max_length: 2
+            index: 8
+            max_length: 60
             value_type: float32
             << : *default_slot
         entity_mask2:
-            index: 7
-            max_length: 2
+            index: 9
+            max_length: 60
+            value_type: float32
+            << : *default_slot
+        # Char
+        entity_mask3:
+            index: 10
+#            max_length: 60
+            value_type: float32
+            << : *default_slot
+        entity_mask4:
+            index: 11
+#            max_length: 60
             value_type: float32
             << : *default_slot
 
@@ -188,19 +211,23 @@ model:
         relation2char: 'relation2char.npy'
         relation2gram: 'relation2gram.npy'
         encoder_type: char # trigram or char
-        encoder: none # none, mean, region, CNN
+        encoder: CNN # none, mean, region, CNN
         region_radius: 3 # only for mean and region
-        groups: 1 # only for CNN
+        groups: 3 # only for CNN
         filters: # only for CNN
-            - 500
+            - 300
+            - 300
+            - 300
         kernel_size: # only for CNN
             - 3
-        use_rnn: True
+            - 3
+            - 3
+        use_rnn: False
         hidden_size: 300 # only for use_rnn
         aggregation: max # max, mean, end (only for use_rnn), attention
 
     # Combination
-    use_highway: True
+    use_highway: False
     
     # Projection to semantic space
     layer_num: 0
@@ -211,12 +238,13 @@ model:
     # Training
     batch_size: 100
     optimizer: Adam
-    learning_rate: 0.001
-    dropout_rate: 0.05
+    learning_rate: 0.01
+    dropout_rate: 0.0
 #    negative_samples: 100
     use_clip_by_norm: True
     decay_step: 309
     decay_rate: 0.9
+    train_order: False
 
 # Estimator
 estimator:
@@ -234,6 +262,7 @@ estimator:
     batch_size: 100
     max_epochs: 40
 
+    char2id: char.dict
     word2id: word.dict
     word2id_emb: word_emb.dict
     relation2id: relation.dict

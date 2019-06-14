@@ -59,110 +59,118 @@ class DependencyModel(model_base.ModelBase):
 
 #        # [batch_size]
         tags = inputs['relation']
-#        entity_order = inputs['entity_order']
-#        entity_mask1 = tf.cast(inputs['entity_mask1'], dtype=tf.float32)
-#        entity_mask2 = tf.cast(inputs['entity_mask2'], dtype=tf.float32)
+        entity_order = inputs['entity_order']
+
+        if config.train_order:
+    #        mask_1 = inputs['entity_mask1']
+    #        mask_2 = inputs['entity_mask2']
+    #        
+            entity_mask1 = inputs['entity_mask1']
+            entity_mask2 = inputs['entity_mask2']
+            entity_mask3 = inputs['entity_mask3']
+            entity_mask4 = inputs['entity_mask4']
         
-        # #########################################################################
-        # Encoding
-        # Word-level Encoder
-        if not config.word.use_word_pretrain_emb:
-            patterns_emb = inputs['word']
-        else:
-            patterns_emb = inputs['word_emb']
-        relations_emb = self.relation2word_emb_layer
-        if not config.word.use_word_pretrain_emb:
-            word_emb_layer = layers.EmbeddingLayer(config.vocab_size_train, config.word.emb_size, name='word_emb')
-        else:
-            word_emb_layer = layers.InitializedEmbeddingLayer(config.vocab_size_emb, config.word.emb_size, config.word.word2vec_emb,
-                                                          trainable=config.word.word_emb_finetune,
-                                                          name='word_emb')
+# #############################################################################################
+#        # Encoding
+#        # Word-level Encoder
+#        if not config.word.use_word_pretrain_emb:
+#            patterns_emb = inputs['word']
+#            word_emb_layer = layers.EmbeddingLayer(config.vocab_size_train, config.word.emb_size, name='word_emb')
+#        else:
+#            patterns_emb = inputs['word_emb']
+#            word_emb_layer = layers.InitializedEmbeddingLayer(config.vocab_size_emb, config.word.emb_size, config.word.word2vec_emb,
+#                                                          trainable=config.word.word_emb_finetune,
+#                                                          name='word_emb')
+#        relations_emb = self.relation2word_emb_layer
+#
+#        if config.word.encoder == 'none':
+#            patterns_emb = word_emb_layer(patterns_emb, zero_forward=True)
+#            relations_emb = word_emb_layer(relations_emb, zero_forward=True)
+#        elif config.word.encoder == 'mean':
+#            word_encoder = layers.MeanEncoder(config.vocab_size_emb, config.word.emb_size, config.word.region_radius,
+#                                              name='word')
+#            patterns_emb = word_encoder(patterns_emb)
+#            relations_emb = word_encoder(relations_emb)
+#        elif config.word.encoder == 'region':
+#            word_encoder = layers.RegionEncoder(config.vocab_size_emb, config.word.emb_size, config.word.region_radius,
+#                                                name='word')
+#            patterns_emb = word_encoder(patterns_emb)
+#            relations_emb = word_encoder(relations_emb)
+#        elif config.word.encoder == 'CNN':
+#            word_encoder = layers.CNNEncoder(config.vocab_size_emb, config.word.emb_size, config.word.groups, config.word.filters, config.word.kernel_size,
+#                                             name='word', emb=word_emb_layer)
+#            patterns_emb = word_encoder(patterns_emb)
+#            relations_emb = word_encoder(relations_emb)
+#        
+#        patterns_emb = tf.layers.dropout(patterns_emb, rate=dropout_rate, training=training)
+#        relations_emb = tf.layers.dropout(relations_emb, rate=dropout_rate, training=training)
+#
+#        if config.word.use_rnn:
+#            h_pattern_word = tf.transpose(patterns_emb, perm=[1, 0, 2])
+#            h_relation_word = tf.transpose(relations_emb, perm=[1, 0, 2])
+#            nwords = tf.count_nonzero(patterns_word, axis=-1, dtype=tf.int32)
+#            relation_nwords = tf.count_nonzero(relations_word, axis=-1, dtype=tf.int32)
+#            # Bi-LSTM
+#            lstm_cell_fw = tf.contrib.rnn.LSTMBlockFusedCell(config.word.hidden_size)
+#            lstm_cell_bw = tf.contrib.rnn.LSTMBlockFusedCell(config.word.hidden_size)
+#            lstm_cell_bw = tf.contrib.rnn.TimeReversedFusedRNN(lstm_cell_bw)
+#            with tf.variable_scope('lstm1'):
+#                output_fw, (_, results_fw) = lstm_cell_fw(h_pattern_word, dtype=tf.float32, sequence_length=nwords)
+#                output_fw = tf.layers.dropout(output_fw, rate=dropout_rate, training=training)
+#                output_fw_relation, (_, results_fw_relation) = lstm_cell_fw(h_relation_word, dtype=tf.float32, sequence_length=relation_nwords)
+#                output_fw_relation = tf.layers.dropout(output_fw_relation, rate=dropout_rate, training=training)
+#            with tf.variable_scope('lstm2'):
+#                output_bw, (_, results_bw) = lstm_cell_bw(h_pattern_word, dtype=tf.float32, sequence_length=nwords)
+#                output_bw = tf.layers.dropout(output_bw, rate=dropout_rate, training=training)
+#                output_bw_relation, (_, results_bw_relation) = lstm_cell_bw(h_relation_word, dtype=tf.float32, sequence_length=relation_nwords)
+#                output_bw_relation = tf.layers.dropout(output_bw_relation, rate=dropout_rate, training=training)
+#
+#            h_pattern_word = tf.concat([output_fw, output_bw], axis=-1)
+#            h_pattern_word = tf.transpose(h_pattern_word, perm=[1, 0, 2])
+#            h_relation_word = tf.concat([output_fw_relation, output_bw_relation], axis=-1)
+#            h_relation_word = tf.transpose(h_relation_word, perm=[1, 0, 2])
+#        else:
+#            h_pattern_word = patterns_emb
+#            h_relation_word = relations_emb
+#            
+#        h_pattern_word = tf.layers.dropout(h_pattern_word, rate=dropout_rate, training=training)
+#        h_relation_word = tf.layers.dropout(h_relation_word, rate=dropout_rate, training=training)
+#        
+#        if config.train_order:
+#    #        h_entity1_word = tf.div_no_nan(tf.reduce_sum(h_pattern_word[mask_1[0]:mask_1[1]], axis=1), tf.case(mask_1[1]-mask_1[0],dtype=tf.float32))
+#    #        h_entity2_word = tf.div_no_nan(tf.reduce_sum(h_pattern_word[mask_1[2]:mask_1[3]], axis=1), tf.case(mask_1[2]-mask_1[3],dtype=tf.float32))
+#            h_entity1_word = tf.expand_dims(entity_mask1,axis=-1) * h_pattern_word
+#            h_entity1_word = tf.div_no_nan(tf.reduce_sum(h_entity1_word, axis=1), tf.expand_dims(tf.reduce_sum(entity_mask1, axis=1),axis=-1))
+#            h_entity2_word = tf.expand_dims(entity_mask2,axis=-1) * h_pattern_word
+#            h_entity2_word = tf.div_no_nan(tf.reduce_sum(h_entity2_word, axis=1), tf.expand_dims(tf.reduce_sum(entity_mask1, axis=1),axis=-1))
+#
+#        if config.word.aggregation == 'max':
+#            emb_size = tf.shape(h_pattern_word)[-1]
+#            pattern_mask = tf.tile(tf.expand_dims(tf.cast(tf.equal(patterns_word, 0), dtype=tf.float32), axis=-1), [1,1,emb_size])
+#            relation_mask = tf.tile(tf.expand_dims(tf.cast(tf.equal(relations_word, 0), dtype=tf.float32), axis=-1), [1,1,emb_size])
+#            h_pattern_word = tf.reduce_max(h_pattern_word - pattern_mask*1000, axis=1)
+#            h_relation_word = tf.reduce_max(h_relation_word - relation_mask*1000, axis=1)
+#        elif config.word.aggregation == 'mean':
+#            emb_size = tf.shape(h_pattern_word)[-1]
+#            pattern_mask = tf.expand_dims(tf.cast(tf.not_equal(patterns_word, 0), dtype=tf.float32), axis=-1)
+#            relation_mask = tf.expand_dims(tf.cast(tf.not_equal(relations_word, 0), dtype=tf.float32), axis=-1)
+#            h_pattern_word = tf.div_no_nan(tf.reduce_sum(h_pattern_word*pattern_mask), tf.count_nonzero(patterns_word, axis=-1, dtype=tf.float32, keepdims=True))
+#            h_relation_word = tf.div_no_nan(tf.reduce_sum(h_relation_word*relation_mask), tf.count_nonzero(relations_word, axis=-1, dtype=tf.float32, keepdims=True))
+#        elif config.word.aggregation == 'end':
+#            h_pattern_word = tf.concat([results_fw, results_bw], axis=-1)
+#            h_relation_word = tf.concat([results_fw_relation, results_bw_relation], axis=-1)
+#        elif config.word.aggregation == 'attention':
+#            w_word = tf.get_variable('w_word', shape=[tf.shape(h_pattern_word)[-1]])
+#            w = tf.math.sqrt(tf.cast(tf.shape(h_pattern_word)[-1],dtype=tf.float32))
+#            M_pattern_word = tf.einsum('i,bli->bl', w_word, tf.nn.tanh(h_pattern_word))
+#            alpha_pattern_word = tf.nn.softmax(M_pattern_word / w)
+#            h_pattern_word = tf.einsum('bl,bli->bi', alpha_pattern_word, h_pattern_word)
+#            
+#            M_relation_word = tf.einsum('i,bli->bl', w_word, tf.nn.tanh(h_relation_word))
+#            alpha_relation_word = tf.nn.softmax(M_relation_word / w)
+#            h_relation_word = tf.einsum('bl,bli->bi', alpha_relation_word, h_relation_word)
 
-        if config.word.encoder == 'none':
-            patterns_emb = word_emb_layer(patterns_emb, zero_forward=True)
-            relations_emb = word_emb_layer(relations_emb, zero_forward=True)
-        elif config.word.encoder == 'mean':
-            word_encoder = layers.MeanEncoder(config.vocab_size_emb, config.word.emb_size, config.word.region_radius,
-                                              name='word')
-            patterns_emb = word_encoder(patterns_emb)
-            relations_emb = word_encoder(relations_emb)
-        elif config.word.encoder == 'region':
-            word_encoder = layers.RegionEncoder(config.vocab_size_emb, config.word.emb_size, config.word.region_radius,
-                                                name='word')
-            patterns_emb = word_encoder(patterns_emb)
-            relations_emb = word_encoder(relations_emb)
-        elif config.word.encoder == 'CNN':
-            word_encoder = layers.CNNEncoder(config.vocab_size_emb, config.word.emb_size, config.word.groups, config.word.filters, config.word.kernel_size,
-                                             name='word', emb=word_emb_layer)
-            patterns_emb = word_encoder(patterns_emb)
-            relations_emb = word_encoder(relations_emb)
-        
-        patterns_emb = tf.layers.dropout(patterns_emb, rate=dropout_rate, training=training)
-        relations_emb = tf.layers.dropout(relations_emb, rate=dropout_rate, training=training)
-
-        if config.word.use_rnn:
-            h_pattern_word = tf.transpose(patterns_emb, perm=[1, 0, 2])
-            h_relation_word = tf.transpose(relations_emb, perm=[1, 0, 2])
-            nwords = tf.count_nonzero(patterns_word, axis=-1, dtype=tf.int32)
-            relation_nwords = tf.count_nonzero(relations_word, axis=-1, dtype=tf.int32)
-            # Bi-LSTM
-            lstm_cell_fw = tf.contrib.rnn.LSTMBlockFusedCell(config.word.hidden_size)
-            lstm_cell_bw = tf.contrib.rnn.LSTMBlockFusedCell(config.word.hidden_size)
-            lstm_cell_bw = tf.contrib.rnn.TimeReversedFusedRNN(lstm_cell_bw)
-            with tf.variable_scope('lstm1'):
-                output_fw, (_, results_fw) = lstm_cell_fw(h_pattern_word, dtype=tf.float32, sequence_length=nwords)
-                output_fw = tf.layers.dropout(output_fw, rate=dropout_rate, training=training)
-                output_fw_relation, (_, results_fw_relation) = lstm_cell_fw(h_relation_word, dtype=tf.float32, sequence_length=relation_nwords)
-                output_fw_relation = tf.layers.dropout(output_fw_relation, rate=dropout_rate, training=training)
-            with tf.variable_scope('lstm2'):
-                output_bw, (_, results_bw) = lstm_cell_bw(h_pattern_word, dtype=tf.float32, sequence_length=nwords)
-                output_bw = tf.layers.dropout(output_bw, rate=dropout_rate, training=training)
-                output_bw_relation, (_, results_bw_relation) = lstm_cell_bw(h_relation_word, dtype=tf.float32, sequence_length=relation_nwords)
-                output_bw_relation = tf.layers.dropout(output_bw_relation, rate=dropout_rate, training=training)
-
-            h_pattern_word = tf.concat([output_fw, output_bw], axis=-1)
-            h_pattern_word = tf.transpose(h_pattern_word, perm=[1, 0, 2])
-            h_relation_word = tf.concat([output_fw_relation, output_bw_relation], axis=-1)
-            h_relation_word = tf.transpose(h_relation_word, perm=[1, 0, 2])
-        else:
-            h_pattern_word = patterns_emb
-            h_relation_word = relations_emb
-            
-        h_pattern_word = tf.layers.dropout(h_pattern_word, rate=dropout_rate, training=training)
-        h_relation_word = tf.layers.dropout(h_relation_word, rate=dropout_rate, training=training)
-        
-#        h_entity1_word = tf.expand_dims(entity_mask1,axis=-1) * h_pattern_word
-#        h_entity1_word = tf.div_no_nan(tf.reduce_sum(h_entity1_word, axis=1), tf.expand_dims(tf.reduce_sum(entity_mask1, axis=1),axis=-1))
-#        h_entity2_word = tf.expand_dims(entity_mask2,axis=-1) * h_pattern_word
-#        h_entity2_word = tf.div_no_nan(tf.reduce_sum(h_entity2_word, axis=1), tf.expand_dims(tf.reduce_sum(entity_mask1, axis=1),axis=-1))
-
-        if config.word.aggregation == 'max':
-            emb_size = tf.shape(h_pattern_word)[-1]
-            pattern_mask = tf.tile(tf.expand_dims(tf.cast(tf.equal(patterns_word, 0), dtype=tf.float32), axis=-1), [1,1,emb_size])
-            relation_mask = tf.tile(tf.expand_dims(tf.cast(tf.equal(relations_word, 0), dtype=tf.float32), axis=-1), [1,1,emb_size])
-            h_pattern_word = tf.reduce_max(h_pattern_word - pattern_mask*1000, axis=1)
-            h_relation_word = tf.reduce_max(h_relation_word - relation_mask*1000, axis=1)
-        elif config.word.aggregation == 'mean':
-            emb_size = tf.shape(h_pattern_word)[-1]
-            pattern_mask = tf.expand_dims(tf.cast(tf.not_equal(patterns_word, 0), dtype=tf.float32), axis=-1)
-            relation_mask = tf.expand_dims(tf.cast(tf.not_equal(relations_word, 0), dtype=tf.float32), axis=-1)
-            h_pattern_word = tf.div_no_nan(tf.reduce_sum(h_pattern_word*pattern_mask), tf.count_nonzero(patterns_word, axis=-1, dtype=tf.float32, keepdims=True))
-            h_relation_word = tf.div_no_nan(tf.reduce_sum(h_relation_word*relation_mask), tf.count_nonzero(relations_word, axis=-1, dtype=tf.float32, keepdims=True))
-        elif config.word.aggregation == 'end':
-            h_pattern_word = tf.concat([results_fw, results_bw], axis=-1)
-            h_relation_word = tf.concat([results_fw_relation, results_bw_relation], axis=-1)
-        elif config.word.aggregation == 'attention':
-            w_word = tf.get_variable('w_word', shape=[tf.shape(h_pattern_word)[-1]])
-            w = tf.math.sqrt(tf.cast(tf.shape(h_pattern_word)[-1],dtype=tf.float32))
-            M_pattern_word = tf.einsum('i,bli->bl', w_word, tf.nn.tanh(h_pattern_word))
-            alpha_pattern_word = tf.nn.softmax(M_pattern_word / w)
-            h_pattern_word = tf.einsum('bl,bli->bi', alpha_pattern_word, h_pattern_word)
-            
-            M_relation_word = tf.einsum('i,bli->bl', w_word, tf.nn.tanh(h_relation_word))
-            alpha_relation_word = tf.nn.softmax(M_relation_word / w)
-            h_relation_word = tf.einsum('bl,bli->bi', alpha_relation_word, h_relation_word)
-
-        # #########################################################################
+# #########################################################################################
         # Char-level Encoder
         if config.char.encoder_type == 'trigram':
             vocab_size = config.trigram_size
@@ -182,15 +190,15 @@ class DependencyModel(model_base.ModelBase):
             patterns_emb_char = char_emb_layer(patterns_emb_char, zero_forward=True)
             relations_emb_char = char_emb_layer(relations_emb_char, zero_forward=True)
         elif config.word.encoder == 'mean':
-            char_encoder = layers.MeanEncoder(vocab_size, config.char.emb_size, config.char.region_radius, name='char')
+            char_encoder = layers.MeanEncoder(vocab_size, config.char.emb_size, config.char.region_radius, name='char_emb')
             patterns_emb_char = char_encoder(patterns_emb_char)
             relations_emb_char = char_encoder(relations_emb_char)
         elif config.word.encoder == 'region':
-            char_encoder = layers.RegionEncoder(vocab_size, config.char.emb_size, config.char.region_radius, name='char')
+            char_encoder = layers.RegionEncoder(vocab_size, config.char.emb_size, config.char.region_radius, name='char_emb')
             patterns_emb_char = char_encoder(patterns_emb_char)
             relations_emb_char = char_encoder(relations_emb_char)
         elif config.word.encoder == 'CNN':
-            char_encoder = layers.CNNEncoder(vocab_size, config.char.emb_size, config.char.groups, config.char.filters, config.char.kernel_size, name='char')
+            char_encoder = layers.CNNEncoder(vocab_size, config.char.emb_size, config.char.groups, config.char.filters, config.char.kernel_size, name='char_emb')
             patterns_emb_char = char_encoder(patterns_emb_char)
             relations_emb_char = char_encoder(relations_emb_char)
 #        if config.encoder == 'trigram':
@@ -248,10 +256,13 @@ class DependencyModel(model_base.ModelBase):
         h_pattern_char = tf.layers.dropout(h_pattern_char, rate=dropout_rate, training=training)
         h_relation_char = tf.layers.dropout(h_relation_char, rate=dropout_rate, training=training)
         
-#        h_entity1_char = tf.expand_dims(entity_mask1,axis=-1) * h_pattern_char
-#        h_entity1_char = tf.div_no_nan(tf.reduce_sum(h_entity1_char, axis=1), tf.expand_dims(tf.reduce_sum(entity_mask1, axis=1),axis=-1))
-#        h_entity2_char = tf.expand_dims(entity_mask2,axis=-1) * h_pattern_char
-#        h_entity2_char = tf.div_no_nan(tf.reduce_sum(h_entity2_char, axis=1), tf.expand_dims(tf.reduce_sum(entity_mask1, axis=1),axis=-1))
+        if config.train_order:
+    #        h_entity1_char = tf.div_no_nan(tf.reduce_sum(h_pattern_char[mask_2[0]:mask_2[1]], axis=1), tf.case(mask_2[1]-mask_2[0],dtype=tf.float32))
+    #        h_entity2_char = tf.div_no_nan(tf.reduce_sum(h_pattern_char[mask_2[2]:mask_2[3]], axis=1), tf.case(mask_2[2]-mask_2[3],dtype=tf.float32))
+            h_entity1_char = tf.expand_dims(entity_mask3,axis=-1) * h_pattern_char
+            h_entity1_char = tf.div_no_nan(tf.reduce_sum(h_entity1_char, axis=1), tf.expand_dims(tf.reduce_sum(entity_mask1, axis=1),axis=-1))
+            h_entity2_char = tf.expand_dims(entity_mask4,axis=-1) * h_pattern_char
+            h_entity2_char = tf.div_no_nan(tf.reduce_sum(h_entity2_char, axis=1), tf.expand_dims(tf.reduce_sum(entity_mask1, axis=1),axis=-1))
         
         # Aggregation
         if config.char.aggregation == 'max':
@@ -280,22 +291,23 @@ class DependencyModel(model_base.ModelBase):
             alpha_relation_char = tf.nn.softmax(M_relation_char / d)
             h_relation_char = tf.einsum('bl,bli->bi', alpha_relation_char, h_relation_char)
 
-        # #########################################################################       
-        # [batch_size, max_len, char_emb_size+word_emb_size]
-        h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)
-        # [relation_size, relation_max_len, char_emb_size+word_emb_size]
-        h_relation = tf.concat([h_relation_char, h_relation_word], axis=-1)
+# ###########################################################################################       
+#        # [batch_size, max_len, char_emb_size+word_emb_size]
+#        h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)
+#        # [relation_size, relation_max_len, char_emb_size+word_emb_size]
+#        h_relation = tf.concat([h_relation_char, h_relation_word], axis=-1)
 
-#        h_entity1 = tf.expand_dims(tf.concat([h_entity1_char, h_entity1_word], axis=-1), axis=1)
-#        h_entity2 = tf.expand_dims(tf.concat([h_entity2_char, h_entity2_word], axis=-1), axis=1)
-#        
-#        h_entity1 = tf.expand_dims(h_entity1_char, axis=1)
-#        h_entity2 = tf.expand_dims(h_entity2_char, axis=1)
-#        # [batch_size, 2, emb_size]
-#        h_entity = tf.concat([h_entity1, h_entity2], axis=1)
-#
-#        h_pattern = h_pattern_char
-#        h_relation = h_relation_char
+        h_pattern = h_pattern_char
+        h_relation = h_relation_char
+
+        if config.train_order:
+    #        h_entity1 = tf.expand_dims(tf.concat([h_entity1_char, h_entity1_word], axis=-1), axis=1)
+    #        h_entity2 = tf.expand_dims(tf.concat([h_entity2_char, h_entity2_word], axis=-1), axis=1)
+    #        
+            h_entity1 = tf.expand_dims(h_entity1_char, axis=1)
+            h_entity2 = tf.expand_dims(h_entity2_char, axis=1)
+            # [batch_size, 2, emb_size]
+            h_entity = tf.concat([h_entity1, h_entity2], axis=1)
 
         if config.use_highway:
             dense_t = tf.layers.Dense(h_pattern.get_shape()[-1],
@@ -343,7 +355,8 @@ class DependencyModel(model_base.ModelBase):
         relation = semantic_proj(h_relation)
         relation = tf.layers.dropout(relation, rate=dropout_rate, training=training)
         
-#        h_entity = semantic_proj(h_entity)
+        if config.train_order:
+            h_entity = semantic_proj(h_entity)
         
         # #########################################################################
         # [batch_size]
@@ -382,25 +395,29 @@ class DependencyModel(model_base.ModelBase):
                         logits=score))
         # [batch_size]
         self.infer_op = tf.argmax(score, -1)
-        # [batch_size, 2, semantic_size]
-        pred_relation = semantic_proj(tf.nn.embedding_lookup(h_relation_comb[:,:2,:], self.infer_op if not training else tags))
-        
-##        print 'h_entity', h_entity
-##        print 'pred_relation', pred_relation
-#        score_order = tf.einsum('bij,bkj->bik', h_entity, pred_relation) * config.gamma
-#        coef = tf.constant([1,-1,-1,1], shape=[2,2], dtype=tf.float32)
-#        # [batch_size, 2]
-#        score_order = tf.einsum('bij,ji->bi', score_order, coef)
-
-#        order_one_hot = tf.one_hot(entity_order, 2)
-#        self.loss_op += tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
-#                        labels=order_one_hot,
-#                        logits=score_order) * tf.cast(inputs['typ'],tf.float32))*0.001
-        
-#        self.infer_order_op = tf.argmax(score_order, -1)
-        
         metric_layer = layers.EMMetricLayer()
-#        infer_total_op = self.infer_op * 2 + self.infer_order_op
-#        entity_total = tags * 2 + entity_order
-        self.metric = metric_layer(self.infer_op,tags,single_weights=tf.cast(1-inputs['typ'],tf.float32), cvt_weights=tf.cast(inputs['typ'],tf.float32))
-#        self.metric = metric_layer(self.infer_op,tags,self.infer_order_op,entity_order,infer_total_op,entity_total,single_weights=tf.cast(1-inputs['typ'],tf.float32), cvt_weights=tf.cast(inputs['typ'],tf.float32))
+        
+        if config.train_order:
+            # [batch_size, 2, semantic_size]
+            infer_tags = self.infer_op if not training else tags
+            pred_relation = semantic_proj(tf.nn.embedding_lookup(h_relation_comb[:,:2,:], infer_tags))
+            
+    ##        print 'h_entity', h_entity
+    ##        print 'pred_relation', pred_relation
+            score_order = tf.einsum('bij,bkj->bik', h_entity, pred_relation) * config.gamma
+            coef = tf.constant([1,-1,-1,1], shape=[2,2], dtype=tf.float32)
+            # [batch_size, 2]
+            score_order = tf.einsum('bij,ji->bi', score_order, coef)
+    
+    #        order_one_hot = tf.one_hot(entity_order, 2)
+    #        self.loss_op += tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
+    #                        labels=order_one_hot,
+    #                        logits=score_order) * tf.cast(inputs['typ'],tf.float32))*0.001
+            
+            self.infer_order_op = tf.argmax(score_order, -1)
+
+            infer_total_op = self.infer_op * 2 + self.infer_order_op
+            entity_total = tags * 2 + entity_order
+            self.metric = metric_layer(self.infer_op,tags,self.infer_order_op,entity_order,infer_total_op,entity_total,single_weights=tf.cast(1-inputs['typ'],tf.float32), cvt_weights=tf.cast(inputs['typ'],tf.float32))
+        else:
+            self.metric = metric_layer(self.infer_op,tags,single_weights=tf.cast(1-inputs['typ'],tf.float32), cvt_weights=tf.cast(inputs['typ'],tf.float32))
