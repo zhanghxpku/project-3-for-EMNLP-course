@@ -22,9 +22,10 @@ class EmbeddingLayer(Layer):
 
     def _forward(self, seq, zero_forward=False):
         if zero_forward:
-            seq_mask = tf.cast(tf.stack([tf.sign(seq)] * self._emb_size, axis=-1), tf.float32)
+            mask = tf.expand_dims(tf.cast(tf.not_equal(seq, 0), dtype=tf.float32), axis=-1)
+#            seq_mask = tf.cast(tf.stack([tf.sign(seq)] * self._emb_size, axis=-1), tf.float32)
             emb = tf.nn.embedding_lookup(self._W, seq)
-            emb = emb * seq_mask
+            emb = emb * mask
             return emb
         else:
             return tf.nn.embedding_lookup(self._W, seq)
@@ -60,8 +61,9 @@ class InitializedEmbeddingLayer(Layer):
 
     def _forward(self, seq, zero_forward=False):
         if zero_forward:
-            W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W[1:, :]), 0)
-            return tf.nn.embedding_lookup(W, seq)
+#            W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W[1:, :]), 0)
+            mask = tf.expand_dims(tf.cast(tf.not_equal(seq, 0), dtype=tf.float32), axis=-1)
+            return tf.nn.embedding_lookup(self._W, seq) * mask
         else:
             return tf.nn.embedding_lookup(self._W, seq)
 

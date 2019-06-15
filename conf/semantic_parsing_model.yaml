@@ -12,7 +12,7 @@ default_dataset: &default_dataset
         gram2id:
             path: trigram.dict
         word2id:
-            path: word_all.dict
+            path: word_char.dict
         word2id_emb:
             path: word_emb.dict
         word2id_train:
@@ -41,7 +41,7 @@ default_dataset: &default_dataset
 #            map_table: gram2id
 #            << : *default_slot
         word_all: &default_slot
-            index: 3
+            index: 1
             type: sequence
             delim: " "
             max_length: 60
@@ -49,55 +49,44 @@ default_dataset: &default_dataset
             pad: 0
             << : *default_slot
         word_emb:
-            index: 3
+            index: 2
             max_length: 60
             map_table: word2id_emb
             << : *default_slot
         word_train:
-            index: 3
+            index: 2
             max_length: 60
             map_table: word2id_train
             << : *default_slot
         relation:
-            index: 4
+            index: 3
             type: value
             map_table: comb2id
             << : *default_slot
         entity:
-            index: 5
+            index: 4
             max_length: 2
             map_table: entity2id
             << : *default_slot
         typ:
-            index: 6
+            index: 5
             type: value
             value_type: int32
         entity_order:
-            index: 7
+            index: 6
             type: value
             value_type: int32
         # Word
         entity_mask1:
-            index: 8
+            index: 7
             max_length: 60
             value_type: float32
             << : *default_slot
         entity_mask2:
-            index: 9
+            index: 8
             max_length: 60
             value_type: float32
             << : *default_slot
-#        # Char
-#        entity_mask3:
-#            index: 10
-##            max_length: 60
-#            value_type: float32
-#            << : *default_slot
-#        entity_mask4:
-#            index: 11
-##            max_length: 60
-#            value_type: float32
-#            << : *default_slot
 
 pred_dataset: &pred_dataset
     type: PythonDataset
@@ -175,7 +164,7 @@ model:
     
     char_size: 206
     trigram_size: 9416
-    vocab_size: 19947
+    vocab_size: 21330
     vocab_size_emb: 16908
     vocab_size_train: 18490
     relation_size: 1562
@@ -202,7 +191,7 @@ model:
 
     # Char-level encoder
     char:
-        emb_size: 500
+        emb_size: 1000
         relation2char: 'relation2char.npy'
         relation2gram: 'relation2gram.npy'
         word2char: 'word2char.npy'
@@ -240,7 +229,7 @@ model:
     batch_size: 100
     optimizer: Adam
     learning_rate: 0.001
-    dropout_rate: 0.00
+    dropout_rate: 0.05
 #    negative_samples: 100
     use_clip_by_norm: True
     decay_step: 309
@@ -275,7 +264,7 @@ estimator:
     # save_checkpoints_steps: 2000
     eval_interval_epochs: 100
 #    eval_interval_steps: 100
-    max_training_steps: 320
+    max_training_steps: 31000
     log_every_n_steps: 20
     tolerance: 5
     skip_eval_save: False

@@ -127,12 +127,12 @@ class PythonEstimator(object):
 
         self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=self.config.max_to_keep)
         logger.info('Start session ...')
-        ###########
+#        ###########
         self.run_metadata = tf.RunMetadata()
         self.run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
         config = tf.ConfigProto(graph_options=tf.GraphOptions(
                     optimizer_options=tf.OptimizerOptions(opt_level=tf.OptimizerOptions.L0)))
-        ###########
+#        ###########
         self.sess = tf.Session(config=config)
         if hasattr(self.config, 'debug') and self.config.debug.enabled:
             logger.debug('Listing all variables in graph:')
@@ -167,7 +167,7 @@ class PythonEstimator(object):
             else:
                 batch[self.model_inputs['dropout_keep_prob']] = 1
 
-    def feedforward(self, batch, mode, name, with_input=False):
+    def feedforward(self, batch, mode, name, with_input=False, cal_time=False):
 
         # update input data i.e. dropout rate
         self.update_estimator_feed_dict(batch, mode)
@@ -176,13 +176,15 @@ class PythonEstimator(object):
 
         try:
             ###########
-            fetch_result = self.sess.run(fetch_dict, feed_dict=batch,options=self.run_options,run_metadata=self.run_metadata)
-            tl = timeline.Timeline(self.run_metadata.step_stats)
-            ctf = tl.generate_chrome_trace_format()
-            with open('./results/timeline.json','w') as wd:
-                wd.write(ctf)
+            if cal_time:
+                fetch_result = self.sess.run(fetch_dict, feed_dict=batch,options=self.run_options,run_metadata=self.run_metadata)
+                tl = timeline.Timeline(self.run_metadata.step_stats)
+                ctf = tl.generate_chrome_trace_format()
+                with open('./results/timeline.json','w') as wd:
+                    wd.write(ctf)
             ###########
-#            fetch_result = self.sess.run(fetch_dict, feed_dict=batch)
+            else:
+                fetch_result = self.sess.run(fetch_dict, feed_dict=batch)
         except ValueError as e:
             for k, v in fetch_dict.items():
                 logger.error('fetch dict[%s] = %s', k, v)
@@ -339,6 +341,7 @@ class PythonEstimator(object):
                     batch=batch,
                     mode=tf.estimator.ModeKeys.TRAIN,
                     name=self.train_name,
+                    cal_time=(self.global_step % self.config.log_every_n_steps == 10)
                 )
                 if not self.global_step:
                     continue

@@ -201,6 +201,10 @@ class DependencyModel(model_base.ModelBase):
         h_relation_char = tf.layers.dropout(h_relation_char, rate=dropout_rate, training=training)
 
         # Aggregation
+        pattern_mask = tf.expand_dims(tf.cast(tf.not_equal(patterns_emb_char_bak, 0), dtype=tf.float32), axis=-1)
+        relation_mask = tf.expand_dims(tf.cast(tf.not_equal(relations_emb_char_bak, 0), dtype=tf.float32), axis=-1)
+        h_pattern_char = h_pattern_char * pattern_mask
+        h_relation_char = h_relation_char * relation_mask
         if config.char.aggregation == 'max':
             emb_size = tf.shape(h_pattern_char)[-1]
             pattern_mask = tf.tile(tf.expand_dims(tf.cast(tf.equal(patterns_emb_char_bak, 0), dtype=tf.float32), axis=-1), [1,1,1,emb_size])
@@ -211,10 +215,10 @@ class DependencyModel(model_base.ModelBase):
 #            emb_size = tf.shape(h_pattern_char)[-1]
 #            pattern_mask = tf.expand_dims(tf.cast(tf.not_equal(patterns_emb_char_bak, 0), dtype=tf.float32), axis=-1)
 #            relation_mask = tf.expand_dims(tf.cast(tf.not_equal(relations_emb_char_bak, 0), dtype=tf.float32), axis=-1)
-#            h_pattern_char = tf.div_no_nan(tf.reduce_sum(h_pattern_char, axis=-2), tf.count_nonzero(patterns_emb_char_bak, axis=-1, dtype=tf.float32, keepdims=True))
-#            h_relation_char = tf.div_no_nan(tf.reduce_sum(h_relation_char, axis=-2), tf.count_nonzero(relations_emb_char_bak, axis=-1, dtype=tf.float32, keepdims=True))
-            h_pattern_char = tf.reduce_sum(h_pattern_char, axis=-2)
-            h_relation_char = tf.reduce_sum(h_relation_char, axis=-2)
+            h_pattern_char = tf.div_no_nan(tf.reduce_sum(h_pattern_char, axis=-2), tf.count_nonzero(patterns_emb_char_bak, axis=-1, dtype=tf.float32, keepdims=True))
+            h_relation_char = tf.div_no_nan(tf.reduce_sum(h_relation_char, axis=-2), tf.count_nonzero(relations_emb_char_bak, axis=-1, dtype=tf.float32, keepdims=True))
+#            h_pattern_char = tf.reduce_sum(h_pattern_char, axis=-2)
+#            h_relation_char = tf.reduce_sum(h_relation_char, axis=-2)
         elif config.char.aggregation == 'attention':
             w_char = tf.get_variable('w_char', shape=[h_pattern_char.get_shape()[-1]])
             d = tf.math.sqrt(tf.cast(tf.shape(h_pattern_char)[-1],dtype=tf.float32))
@@ -287,7 +291,11 @@ class DependencyModel(model_base.ModelBase):
 
         h_pattern = tf.layers.dropout(h_pattern, rate=dropout_rate, training=training)
         h_relation = tf.layers.dropout(h_relation, rate=dropout_rate, training=training)
-
+        
+        pattern_mask = tf.expand_dims(tf.cast(tf.not_equal(patterns_word, 0), dtype=tf.float32), axis=-1)
+        relation_mask = tf.expand_dims(tf.cast(tf.not_equal(relations_word, 0), dtype=tf.float32), axis=-1)
+        h_pattern = h_pattern * pattern_mask
+        h_relation = h_relation * relation_mask
         if config.combination.aggregation == 'max':
             emb_size = tf.shape(h_pattern)[-1]
             pattern_mask = tf.tile(tf.expand_dims(tf.cast(tf.equal(patterns_word, 0), dtype=tf.float32), axis=-1), [1,1,emb_size])
@@ -296,10 +304,8 @@ class DependencyModel(model_base.ModelBase):
             h_relation = tf.reduce_max(h_relation - relation_mask*1000, axis=1)
         elif config.combination.aggregation == 'mean':
 #            emb_size = tf.shape(h_pattern)[-1]
-            pattern_mask = tf.expand_dims(tf.cast(tf.not_equal(patterns_word, 0), dtype=tf.float32), axis=-1)
-            relation_mask = tf.expand_dims(tf.cast(tf.not_equal(relations_word, 0), dtype=tf.float32), axis=-1)
-            h_pattern = tf.div_no_nan(tf.reduce_sum(h_pattern*pattern_mask), tf.count_nonzero(patterns_word, axis=-1, dtype=tf.float32, keepdims=True))
-            h_relation = tf.div_no_nan(tf.reduce_sum(h_relation*relation_mask), tf.count_nonzero(relations_word, axis=-1, dtype=tf.float32, keepdims=True))
+            h_pattern = tf.div_no_nan(tf.reduce_sum(h_pattern), tf.count_nonzero(patterns_word, axis=-1, dtype=tf.float32, keepdims=True))
+            h_relation = tf.div_no_nan(tf.reduce_sum(h_relation), tf.count_nonzero(relations_word, axis=-1, dtype=tf.float32, keepdims=True))
         elif config.combination.aggregation == 'end':
             h_pattern = tf.concat([results_fw, results_bw], axis=-1)
             h_relation = tf.concat([results_fw_relation, results_bw_relation], axis=-1)

@@ -14,7 +14,7 @@ class MeanEncoder(Layer):
         self._region_radius = region_radius
         self._paddings = tf.constant([[0, 0], [self._region_radius, self._region_radius], [0, 0]])
         self._bias = np.tile(np.array([i for i in range(region_radius*2+1)]),(1,1,1,1))
-        self._W = tf.get_variable(name + '_W', shape=[(vocab_size-1)*(region_radius*2+1), emb_size],
+        self._W = tf.get_variable(name + '_W', shape=[(vocab_size)*(region_radius*2+1), emb_size],
                                   initializer=tf.contrib.layers.xavier_initializer(uniform=True, seed=None, dtype=tf.float32),
                                   trainable=trainable)
 
@@ -25,11 +25,12 @@ class MeanEncoder(Layer):
         r = tf.range(region_size)
         align_emb = tf.map_fn(lambda i: padded_seq[:,i:i+s[1],:], r)
         align_emb = tf.transpose(align_emb, perm=[1, 2, 3, 0])*region_size + self._bias
-        W = tf.concat((tf.zeros(shape=[region_size, self._emb_size]), self._W), 0)
+        mask = tf.expand_dims(tf.cast(tf.not_equal(seq, 0), dtype=tf.float32), axis=-1)
+#        W = tf.concat((tf.zeros(shape=[region_size, self._emb_size]), self._W), 0)
         # [batch_size, max_len, region_radius, emb_size]
-        align_emb = tf.nn.embedding_lookup(W, align_emb)
+        align_emb = tf.nn.embedding_lookup(self._W, align_emb) * mask
         trigram_emb = tf.div_no_nan(tf.reduce_sum(align_emb,axis=-2), tf.count_nonzero(seq, axis=-1, dtype=tf.float32, keepdims=True))
-        h = tf.tanh(trigram_emb) 
+        h = tf.tanh(trigram_emb)
         return h
 
 
@@ -42,12 +43,12 @@ class RegionEncoder(Layer):
         self._region_radius = region_radius
         self._paddings = tf.constant([[0, 0], [self._region_radius, self._region_radius, [0, 0]]])
         self._bias = np.tile(np.array([i for i in range(region_radius*2+1)]),(1,1,1,1))
-        self._W = tf.get_variable(name + '_W', shape=[vocab_size-1, emb_size],
+        self._W = tf.get_variable(name + '_W', shape=[vocab_size, emb_size],
                                   initializer=tf.contrib.layers.xavier_initializer(uniform=True, seed=None, dtype=tf.float32),
                                   trainable=trainable)
         # Context matrix
         self._U = tf.get_variable(name + '_U',
-                     shape=[(vocab_size-1)*(region_radius*2+1), emb_size],
+                     shape=[(vocab_size)*(region_radius*2+1), emb_size],
                      dtype=tf.float32,
                      trainable=trainable)
 
@@ -59,14 +60,16 @@ class RegionEncoder(Layer):
         align_emb = tf.map_fn(lambda i: padded_seq[:,i:i+s[1],:], r)
         align_emb = tf.transpose(align_emb, perm=[1, 2, 3, 0])*region_size + self._bias
         # Word Embedding
-        W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W), 0)
-        trigram_emb = tf.nn.embedding_lookup(W, seq)
+#        W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W), 0)
+        trigram_emb = tf.nn.embedding_lookup(self._W, seq)
         # Context-Word Embedding
-        U = tf.concat((tf.zeros(shape=[region_size, self._emb_size]), self._U), 0)
-        align_emb = tf.nn.embedding_lookup(U, align_emb)
+#        U = tf.concat((tf.zeros(shape=[region_size, self._emb_size]), self._U), 0)
+        align_emb = tf.nn.embedding_lookup(self._U, align_emb)
         trigram_emb = tf.expand_dims(trigram_emb, -2)
         # [batch_size, max_len, region_radius, emb_size]
         projected_emb = align_emb * trigram_emb
+        mask = tf.expand_dims(tf.cast(tf.not_equal(seq, 0), dtype=tf.float32), axis=-1)
+        projected_emb = projected_emb * mask
         h = tf.reduce_max(projected_emb, axis=-2)
         return h
 
@@ -76,7 +79,7 @@ class CNNEncoder(Layer):
                  trainable=True, name="cnn_encoder", initializer=None, emb=None, **kwargs):
         Layer.__init__(self, name, **kwargs)
         if emb is None:
-            self._W = tf.get_variable(name + '_W', shape=[vocab_size - 1, emb_size],
+            self._W = tf.get_variable(name + '_W', shape=[vocab_size, emb_size],
                                       initializer=tf.contrib.layers.xavier_initializer(uniform=True, seed=None, dtype=tf.float32),
                                       trainable=trainable)
         self._emb = emb
@@ -98,9 +101,10 @@ class CNNEncoder(Layer):
 
     def _forward(self, seq):
         if self._emb is None:
-            W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W), 0)
+            mask = tf.expand_dims(tf.cast(tf.not_equal(seq, 0), dtype=tf.float32), axis=-1)
+#            W = tf.concat((tf.zeros(shape=[1, self._emb_size]), self._W), 0)
             # [batch_size, max_len, emb_size]
-            char_emb = tf.nn.embedding_lookup(W, seq)
+            char_emb = tf.nn.embedding_lookup(self._W, seq) * mask
         else:
             char_emb = self._emb(seq, zero_forward=True)
         h = []

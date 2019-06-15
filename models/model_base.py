@@ -21,7 +21,6 @@ class ModelBase(object):
 
     # Build graph
     def build_graph(self, inputs, mode):
-        config = self.config
         self.inputs = inputs
         logger.info('Checking inputs ...')
 

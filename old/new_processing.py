@@ -108,7 +108,6 @@ def generate_tables():
     
     words = set()
     words_all = set()
-    words_char = set()
     relation = set()
     relation_comb = set()
     relation_single = set()
@@ -137,7 +136,6 @@ def generate_tables():
                     assert len(sents[1].split()) == len(sents[-1].split()), (len(sents[1].split()),len(sents[-1].split()))
                     sents_char = '#' + '#'.join(sents[1].split()) + '#'
                     c, t = get_chars(sents_char, pad=True)
-                    temp = sents[1]
                     sents[1] = ' '.join(c)
                     sents.append(' '.join(t))
                     if len(sents_char) in char_len:
@@ -179,13 +177,24 @@ def generate_tables():
                         entity_2[i] = 1
                     sents_new.append(' '.join([str(int(i)) for i in entity_2]))
 
-                    fout.write('\t'.join(sents_new[0:1] + [temp] + sents_new[3:])+'\n'.replace('  ', ' '))
+                    entity_1 = np.zeros([len(sents_new[1])])
+                    for i in range(int(mask_char[0]), int(mask_char[1])):
+                        entity_1[i] = 1
+                    sents_new.append(' '.join([str(int(i)) for i in entity_1]))
+                    entity_1 = np.zeros([len(sents_new[1])])
+                    for i in range(int(mask_char[2]), int(mask_char[3])):
+                        entity_1[i] = 1
+                    sents_new.append(' '.join([str(int(i)) for i in entity_1]))
+                    
+#                    sents_new.append(' '.join([str(int(i)) for i in mask]))
+#                    sents_new.append(' '.join([str(int(i)) for i in mask_char]))
+
+                    fout.write('\t'.join(sents_new)+'\n'.replace('  ', ' '))
                     if idx == 0:
                         chars.update(sents_new[1].split())
                         trigrams.update(sents_new[2].split())
                         words.update(sents_new[3].split())
                     words_all.update(sents_new[3].split())
-                    words_char.update(temp.split())
                     sents = []
                 else:
                     # question
@@ -258,7 +267,6 @@ def generate_tables():
         r_word = tokenize(r,num=True).split()
         words.update(r_word)
         words_all.update(r_word)
-        words_char.update(r_word)
         r = tokenize(r).split()
         max_len = max_len if max_len > len(r) else len(r)
         sents_char = '#' + '#'.join(r) + '#'
@@ -344,15 +352,7 @@ def generate_tables():
         fout.write(r+'\n')
     fout.close()
     
-    print('number of words in all sets:', len(words_char))
-    words_char = sorted(words_char)
-    fout = open('word_char.dict', 'w', encoding='utf-8')
-    fout.write('<PAD>\n<UNK>\n')
-    for r in words_char:
-        fout.write(r+'\n')
-    fout.close()
-    
-    return words, chars, trigrams, relation, relation_comb, relation_single, max_len, max_char, words_all, char_len, words_char
+    return words, chars, trigrams, relation, relation_comb, relation_single, max_len, max_char, words_all, char_len
 
 def build_maps(words, chars, trigrams, relation, relation_comb, relation_single, max_len, max_char, words_all):
     char2id = {}
@@ -406,7 +406,7 @@ def build_maps(words, chars, trigrams, relation, relation_comb, relation_single,
     relation2word_all = np.zeros(shape=[relation_num, max_len], dtype=np.int32)
     for idx_r, r in enumerate(relation):
         r = r.split('mso:')[-1]
-        r = tokenize(r,num=False).split()
+        r = tokenize(r,num=True).split()
         for idx, word in enumerate(r):
             if word in words_all:
                 relation2word_all[idx_r, idx] = word2id[word]
@@ -556,9 +556,9 @@ def build_pretrained(words, chars, trigrams, relation, read_glove=True):
 #def main():
 ## seperate into single relation and CVT
 #seperate_relation()
-words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_all, char_len, words_char = generate_tables()
-build_maps(words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_char)
-#words_emb = build_pretrained(words_all, chars, trigrams, relation, read_glove=False)
+words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_all, char_len = generate_tables()
+build_maps(words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_all)
+words_emb = build_pretrained(words_all, chars, trigrams, relation, read_glove=False)
 
 
 #
