@@ -34,68 +34,74 @@ def tokenize(word, num=False, pun=True):
             temp.append(w)
     return ' '.join(temp).strip()
 
-def get_chars(word):
+def get_chars(word, pad=False):
     if not word.startswith('#'):
         word = '#' + word + '#'
-    chars = [word[i+1] for i in range(len(word)-2)]
-    trigrams = [word[i:i+3] for i in range(len(word)-2)]
+    if not pad:
+        chars = [word[i+1] for i in range(len(word)-2)]
+        trigrams = [word[i:i+3] for i in range(len(word)-2)]
+    else:
+        chars = [word[i+1].replace('#', '<PAD>') for i in range(len(word)-2)]
+        trigrams = [word[i:i+3] for i in range(len(word)-2)]
+        for t in range(len(word)-2):
+            trigrams[t] = trigrams[t] if trigrams[t][1] != '#' else '<PAD>'
     return chars, trigrams
 
-#def seperate_relation():
-#    # generate relation set and single relation & CVT datasets
-#    train_dataset = ['data/EMNLP.train']
-#    dataset = ['data/EMNLP.dev']
-#    for train in train_dataset:
-#        total_line = 0
-#        fout1 = open(train+'.single', 'w', encoding='utf-8')
-#        fout2 = open(train+'.cvt', 'w', encoding='utf-8')
-#        sents = ''
-#        with open(train, encoding='utf-8') as fin:
-#            for line in fin:
-#                line = line.strip()
-#                if line.startswith('=='):
-#                    total_line += 1
-#                    sents = ''
-#                else:
-#                    sents += (line+'\n')
-#                    if line.startswith('<question type'):
-#                        q_type = line.split('\t')[-1]
-#                        if q_type == 'single-relation':
-#                            fout1.write(sents+'==================================================\n')
-#                        elif q_type == 'cvt':
-#                            fout2.write(sents+'==================================================\n')
+def seperate_relation():
+    # generate relation set and single relation & CVT datasets
+    train_dataset = ['data/EMNLP.train']
+    dataset = ['data/EMNLP.dev', 'data/EMNLP.test']
+    for train in train_dataset:
+        total_line = 0
+        fout1 = open(train+'.single', 'w', encoding='utf-8')
+        fout2 = open(train+'.cvt', 'w', encoding='utf-8')
+        sents = ''
+        with open(train, encoding='utf-8') as fin:
+            for line in fin:
+                line = line.strip()
+                if line.startswith('=='):
+                    total_line += 1
+                    sents = ''
+                else:
+                    sents += (line+'\n')
+                    if line.startswith('<question type'):
+                        q_type = line.split('\t')[-1]
+                        if q_type == 'single-relation':
+                            fout1.write(sents+'==================================================\n')
+                        elif q_type == 'cvt':
+                            fout2.write(sents+'==================================================\n')
+                    elif line.startswith('<logical'):
+                        line = line.split('\t')[1]
+                        line = line.split()
+
+        fout1.close()
+        fout2.close()
+
+    for test in dataset:
+        total_line = 0
+        fout1 = open(test+'.single', 'w', encoding='utf-8')
+        fout2 = open(test+'.cvt', 'w', encoding='utf-8')
+        sents = ''
+        with open(test, encoding='utf-8') as fin:
+            for line in fin:
+                line = line.strip()
+                if line.startswith('=='):
+                    total_line += 1
+                    sents = ''
+                else:
+                    sents += (line+'\n')
+                    if line.startswith('<question type'):
+                        q_type = line.split('\t')[-1]
+                        if q_type == 'single-relation':
+                            fout1.write(sents+'==================================================\n')
+                        elif q_type == 'cvt':
+                            fout2.write(sents+'==================================================\n')
 #                    elif line.startswith('<logical'):
 #                        line = line.split('\t')[1]
 #                        line = line.split()
-#
-#        fout1.close()
-#        fout2.close()
-#
-#    for test in dataset:
-#        total_line = 0
-#        fout1 = open(test+'.single', 'w', encoding='utf-8')
-#        fout2 = open(test+'.cvt', 'w', encoding='utf-8')
-#        sents = ''
-#        with open(test, encoding='utf-8') as fin:
-#            for line in fin:
-#                line = line.strip()
-#                if line.startswith('=='):
-#                    total_line += 1
-#                    sents = ''
-#                else:
-#                    sents += (line+'\n')
-#                    if line.startswith('<question type'):
-#                        q_type = line.split('\t')[-1]
-#                        if q_type == 'single-relation':
-#                            fout1.write(sents+'==================================================\n')
-#                        elif q_type == 'cvt':
-#                            fout2.write(sents+'==================================================\n')
-##                    elif line.startswith('<logical'):
-##                        line = line.split('\t')[1]
-##                        line = line.split()
-#
-#        fout1.close()
-#        fout2.close()
+
+        fout1.close()
+        fout2.close()
         
 def generate_tables():
     dataset = ['data/EMNLP.train', 'data/EMNLP.dev']
@@ -129,7 +135,7 @@ def generate_tables():
                     max_len = max_len if max_len > len(sents[1].split()) else len(sents[1].split())
                     assert len(sents[1].split()) == len(sents[-1].split()), (len(sents[1].split()),len(sents[-1].split()))
                     sents_char = '#' + '#'.join(sents[1].split()) + '#'
-                    c, t = get_chars(sents_char)
+                    c, t = get_chars(sents_char, pad=True)
                     sents[1] = ' '.join(c)
                     sents.append(' '.join(t))
                     if len(sents_char) in char_len:
@@ -171,17 +177,14 @@ def generate_tables():
                         entity_2[i] = 1
                     sents_new.append(' '.join([str(int(i)) for i in entity_2]))
 
-                    entity_1 = np.zeros([len(sents_new[1])])
-                    for i in range(int(mask_char[0]), int(mask_char[1])):
-                        entity_1[i] = 1
-                    sents_new.append(' '.join([str(int(i)) for i in entity_1]))
-                    entity_1 = np.zeros([len(sents_new[1])])
-                    for i in range(int(mask_char[2]), int(mask_char[3])):
-                        entity_1[i] = 1
-                    sents_new.append(' '.join([str(int(i)) for i in entity_1]))
-                    
-#                    sents_new.append(' '.join([str(int(i)) for i in mask]))
-#                    sents_new.append(' '.join([str(int(i)) for i in mask_char]))
+#                    entity_1 = np.zeros([len(sents_new[1])])
+#                    for i in range(int(mask_char[0]), int(mask_char[1])):
+#                        entity_1[i] = 1
+#                    sents_new.append(' '.join([str(int(i)) for i in entity_1]))
+#                    entity_1 = np.zeros([len(sents_new[1])])
+#                    for i in range(int(mask_char[2]), int(mask_char[3])):
+#                        entity_1[i] = 1
+#                    sents_new.append(' '.join([str(int(i)) for i in entity_1]))
 
                     fout.write('\t'.join(sents_new)+'\n'.replace('  ', ' '))
                     if idx == 0:
@@ -264,14 +267,15 @@ def generate_tables():
         r = tokenize(r).split()
         max_len = max_len if max_len > len(r) else len(r)
         sents_char = '#' + '#'.join(r) + '#'
-        c, t = get_chars(sents_char)
+        c, t = get_chars(sents_char, pad=True)
         chars.update(c)
         trigrams.update(t)
         max_char = max_char if max_char > len(sents_char) else len(sents_char)
     
     print('max_len:', max_len)
     print('max_char:', max_char)
-
+    
+    trigrams.remove('<PAD>')
     trigrams = sorted(trigrams)
     print('number of trigrams in training set:', len(trigrams))
     fout = open('trigram.dict', 'w', encoding='utf-8')
@@ -280,6 +284,7 @@ def generate_tables():
         fout.write(g+'\n')
     fout.close()
     
+    chars.remove('<PAD>')
     chars = sorted(chars)
     print('number of chars in training set:', len(chars))
     fout = open('char.dict', 'w', encoding='utf-8')
@@ -375,7 +380,7 @@ def build_maps(words, chars, trigrams, relation, relation_comb, relation_single,
                 relation2word[idx_r, idx] = 1
         r = tokenize(r).split()
         sents_char = '#' + '#'.join(r) + '#'
-        c, t = get_chars(sents_char)
+        c, t = get_chars(sents_char, pad=True)
         for idx, char in enumerate(c):
             if char in chars:
                 relation2char[idx_r, idx] = char2id[char]
@@ -426,7 +431,27 @@ def build_maps(words, chars, trigrams, relation, relation_comb, relation_single,
     for r in relation_comb:
         fout.write(r+'\n')
     fout.close()
-        
+    
+    max_char = 0
+    for word in words_all:
+        max_char = max_char if max_char > len(word) else len(word)
+    print('longest word all:', max_char)
+    word2char = np.zeros([len(words_all)+2, max_char], dtype=np.int32)
+    word2gram = np.zeros([len(words_all)+2, max_char], dtype=np.int32)
+    for idx, word in enumerate(words_all):
+        word = '#' + word + '#'
+        for i in range(len(word)-2):
+            if word[i+1] in char2id:
+                word2char[idx+2, i] = char2id[word[i+1]]
+            else:
+                word2char[idx+2, i] = 1
+            if word[i:i+3] in trigram2id:
+                word2gram[idx+2, i] = trigram2id[word[i:i+3]]
+            else:
+                word2gram[idx+2, i] = 1
+            
+    np.save('word2char', word2char)
+    np.save('word2gram', word2gram)
     
 def build_pretrained(words, chars, trigrams, relation, read_glove=True):
 #    words = set([tokenize(word,num=True,pun=False) for word in words])
@@ -491,14 +516,48 @@ def build_pretrained(words, chars, trigrams, relation, read_glove=True):
                 relation2word[idx_r, idx] = 1
     
     np.save('relation2word_emb', relation2word)
+    
+    char2id = {}
+    for idx, c in enumerate(chars):
+        char2id[c] = idx + 2
+    
+    trigram2id = {}
+    for idx, g in enumerate(trigrams):
+        trigram2id[g] = idx + 2
+    
+    max_char = 0
+    for word in words_emb:
+        max_char = max_char if max_char > len(word) else len(word)
+    print('longest word emb:', max_char)
+    word2char_emb = np.zeros([len(words_emb)+2, max_char], dtype=np.int32)
+    word2gram_emb = np.zeros([len(words_emb)+2, max_char], dtype=np.int32)
+    for idx, word in enumerate(words_emb):
+        word = '#' + word + '#'
+        for i in range(len(word)-2):
+            if word[i+1] in char2id:
+                word2char_emb[idx+2, i] = char2id[word[i+1]]
+            else:
+                word2char_emb[idx+2, i] = 1
+            if word[i:i+3] in trigram2id:
+                word2gram_emb[idx+2, i] = trigram2id[word[i:i+3]]
+            else:
+                word2gram_emb[idx+2, i] = 1
 
+    np.save('word2char_emb', word2char_emb)
+    np.save('word2gram_emb', word2gram_emb)
+    
+    return words_emb
+
+    
 
 #def main():
-# seperate into single relation and CVT
+## seperate into single relation and CVT
 #seperate_relation()
 words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_all, char_len = generate_tables()
-#build_maps(words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_all)
-#build_pretrained(words_all, chars, trigrams, relation, read_glove=False)
+build_maps(words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_all)
+words_emb = build_pretrained(words_all, chars, trigrams, relation, read_glove=False)
+
+
 #
 #    
 #if '__main__' == __name__:

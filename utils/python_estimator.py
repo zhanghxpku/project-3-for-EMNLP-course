@@ -10,6 +10,7 @@ import tensorflow as tf
 from tensorflow.python import debug as tf_debug
 from utils import get_dataset
 import traceback
+from tensorflow.python.client import timeline
 
 logger = logging.getLogger(__name__)
 
@@ -126,8 +127,13 @@ class PythonEstimator(object):
 
         self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=self.config.max_to_keep)
         logger.info('Start session ...')
-
-        self.sess = tf.Session()
+        ###########
+        self.run_metadata = tf.RunMetadata()
+        self.run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        config = tf.ConfigProto(graph_options=tf.GraphOptions(
+                    optimizer_options=tf.OptimizerOptions(opt_level=tf.OptimizerOptions.L0)))
+        ###########
+        self.sess = tf.Session(config=config)
         if hasattr(self.config, 'debug') and self.config.debug.enabled:
             logger.debug('Listing all variables in graph:')
             for v in tf.get_default_graph().as_graph_def().node:
@@ -169,7 +175,14 @@ class PythonEstimator(object):
         fetch_dict.update(self.fetch_dict[mode])
 
         try:
-            fetch_result = self.sess.run(fetch_dict, feed_dict=batch)
+            ###########
+            fetch_result = self.sess.run(fetch_dict, feed_dict=batch,options=self.run_options,run_metadata=self.run_metadata)
+            tl = timeline.Timeline(self.run_metadata.step_stats)
+            ctf = tl.generate_chrome_trace_format()
+            with open('./results/timeline.json','w') as wd:
+                wd.write(ctf)
+            ###########
+#            fetch_result = self.sess.run(fetch_dict, feed_dict=batch)
         except ValueError as e:
             for k, v in fetch_dict.items():
                 logger.error('fetch dict[%s] = %s', k, v)
@@ -266,11 +279,11 @@ class PythonEstimator(object):
                 fout = open(self.config.eval_op_path+'.'+dataset_config.name, 'w')
                 fout_err = open(self.config.eval_op_path+'.'+dataset_config.name+'.error', 'w')
                 for res in results:
-                    if res['word'] is None:
+                    if res['word_train'] is None:
                         break
                     idx = res['idx']
-                    char = map(lambda x: char2id.get(x, '<UNK>'), res['char'])
-                    word = map(lambda x: word2id.get(x, '<UNK>'), res['word'])
+#                    char = map(lambda x: char2id.get(x, '<UNK>'), res['char'])
+                    word = map(lambda x: word2id.get(x, '<UNK>'), res['word_train'])
                     word_emb = map(lambda x: word2id_emb.get(x, '<UNK>'), res['word_emb'])
                     relation = map(lambda x: relation2id.get(x, '<UNK>'), [res['relation']])
                     entity = map(lambda x: entity2id.get(x, '<UNK>'), res['entity'])
@@ -282,12 +295,12 @@ class PythonEstimator(object):
                         if res['word_emb'][i] == 0:
                             word_len = i
                             break
-                    char_len = 0
-                    for i in range(len(res['char'])):
-                        if res['char'][i] == 0:
-                            char_len = i
-                            break
-                    fout.write('\n'.join([str(idx),' '.join(word[:word_len]),' '.join(char[:char_len]),' '.join(word_emb[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
+#                    char_len = 0
+#                    for i in range(len(res['char'])):
+#                        if res['char'][i] == 0:
+#                            char_len = i
+#                            break
+                    fout.write('\n'.join([str(idx),' '.join(word[:word_len]),' '.join(word_emb[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
                     res['word_emb'] = [str(c) for c in res['word_emb']]
                     res['relation'] = str(res['relation'])
                     res['entity'] = [str(c) for c in res['entity']]
@@ -362,7 +375,7 @@ class PythonEstimator(object):
                     if score > max_score:
                         self._save_checkpoint(use_best=True)
                         max_score = score
-                        max_step = global_step
+                        max_step = self.global_step
 
                     training_finished = True
                     break

@@ -12,11 +12,11 @@ default_dataset: &default_dataset
         gram2id:
             path: trigram.dict
         word2id:
-            path: word.dict
+            path: word_all.dict
         word2id_emb:
             path: word_emb.dict
-#        word2id_train:
-#            path: word.dict
+        word2id_train:
+            path: word.dict
         relation2id: 
             path: relation.dict
         entity2id: 
@@ -29,30 +29,35 @@ default_dataset: &default_dataset
             index: 0
             type: value
             value_type: int32
-        char: &default_slot
-            index: 1
+#        char: &default_slot
+#            index: 1
+#            type: sequence
+#            delim: " "
+#            map_table: char2id
+#            max_length: 264 # 389
+#            pad: 0
+#        gram:
+#            index: 2
+#            map_table: gram2id
+#            << : *default_slot
+        word_all: &default_slot
+            index: 3
             type: sequence
             delim: " "
-            map_table: char2id
-            max_length: 264 # 389
-            pad: 0
-        gram:
-            index: 2
-            map_table: gram2id
-            << : *default_slot
-        word: 
-            index: 3
             max_length: 60
             map_table: word2id
+            pad: 0
             << : *default_slot
         word_emb:
             index: 3
             max_length: 60
             map_table: word2id_emb
             << : *default_slot
-#        word_train:
-#            map_table: word2id_train
-#            << : *default_slot
+        word_train:
+            index: 3
+            max_length: 60
+            map_table: word2id_train
+            << : *default_slot
         relation:
             index: 4
             type: value
@@ -71,17 +76,6 @@ default_dataset: &default_dataset
             index: 7
             type: value
             value_type: int32
-#        # Word
-#        entity_mask1:
-#            index: 8
-#            max_length: 4
-#            value_type: int32
-#            << : *default_slot
-#        entity_mask2:
-#            index: 9
-#            max_length: 4
-#            value_type: int32
-#            << : *default_slot
         # Word
         entity_mask1:
             index: 8
@@ -93,17 +87,17 @@ default_dataset: &default_dataset
             max_length: 60
             value_type: float32
             << : *default_slot
-        # Char
-        entity_mask3:
-            index: 10
-#            max_length: 60
-            value_type: float32
-            << : *default_slot
-        entity_mask4:
-            index: 11
-#            max_length: 60
-            value_type: float32
-            << : *default_slot
+#        # Char
+#        entity_mask3:
+#            index: 10
+##            max_length: 60
+#            value_type: float32
+#            << : *default_slot
+#        entity_mask4:
+#            index: 11
+##            max_length: 60
+#            value_type: float32
+#            << : *default_slot
 
 pred_dataset: &pred_dataset
     type: PythonDataset
@@ -134,6 +128,9 @@ pred_dataset: &pred_dataset
             << : *default_slot
         word_train:
             map_table: word2id_train
+            << : *default_slot
+        word_all:
+            map_table: word2id_all
             << : *default_slot
 #        relation:
 #            index: 2
@@ -177,7 +174,7 @@ model:
     relation_max_len: 12
     
     char_size: 206
-    trigram_size: 10771
+    trigram_size: 9416
     vocab_size: 19947
     vocab_size_emb: 16908
     vocab_size_train: 18490
@@ -192,6 +189,7 @@ model:
         word2vec_emb: 'embedding.300d'
         relation2word: 'relation2word.npy'
         relation2word_emb: 'relation2word_emb.npy'
+        relation2word_all: 'relation2word_all.npy'
     #    relation2word_train: 'relation2word_train.npy'
         emb_size: 300
         encoder: none # none, mean, region, CNN
@@ -201,18 +199,17 @@ model:
             - 50
         kernel_size: # only for CNN
             - 3
-        use_rnn: True
-        hidden_size: 300 # only for use_rnn
-        aggregation: max # max, mean, end (only for use_rnn), attention
 
     # Char-level encoder
     char:
-        emb_size: 300
+        emb_size: 500
         relation2char: 'relation2char.npy'
         relation2gram: 'relation2gram.npy'
-        encoder_type: char # trigram or char
-        encoder: CNN # none, mean, region, CNN
-        region_radius: 3 # only for mean and region
+        word2char: 'word2char.npy'
+        word2gram: 'word2gram.npy'
+        encoder_type: trigram # trigram or char
+        encoder: mean # none, mean, region, CNN
+        region_radius: 1 # only for mean and region
         groups: 3 # only for CNN
         filters: # only for CNN
             - 300
@@ -223,11 +220,15 @@ model:
             - 3
             - 3
         use_rnn: False
-        hidden_size: 300 # only for use_rnn
-        aggregation: max # max, mean, end (only for use_rnn), attention
+        hidden_size: 500 # only for use_rnn
+        aggregation: mean # max, mean, attention
 
     # Combination
-    use_highway: False
+    combination:
+        use_highway: False
+        use_rnn: False
+        hidden_size: 500 # only for use_rnn
+        aggregation: max # max, mean, end (only for use_rnn), attention
     
     # Projection to semantic space
     layer_num: 0
@@ -238,8 +239,8 @@ model:
     # Training
     batch_size: 100
     optimizer: Adam
-    learning_rate: 0.01
-    dropout_rate: 0.0
+    learning_rate: 0.001
+    dropout_rate: 0.00
 #    negative_samples: 100
     use_clip_by_norm: True
     decay_step: 309
@@ -274,7 +275,7 @@ estimator:
     # save_checkpoints_steps: 2000
     eval_interval_epochs: 100
 #    eval_interval_steps: 100
-    max_training_steps: 40000
+    max_training_steps: 320
     log_every_n_steps: 20
     tolerance: 5
     skip_eval_save: False

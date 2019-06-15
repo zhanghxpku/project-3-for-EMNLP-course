@@ -19,3 +19,4 @@ word.dict.emb
 *.300d
 *.300d
 *.300d
+data/EMNLP.test
