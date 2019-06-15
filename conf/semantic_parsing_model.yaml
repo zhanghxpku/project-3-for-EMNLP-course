@@ -50,12 +50,12 @@ default_dataset: &default_dataset
             << : *default_slot
         word_emb:
             index: 2
-            max_length: 60
+#            max_length: 60
             map_table: word2id_emb
             << : *default_slot
         word_train:
             index: 2
-            max_length: 60
+#            max_length: 60
             map_table: word2id_train
             << : *default_slot
         relation:
@@ -79,12 +79,12 @@ default_dataset: &default_dataset
         # Word
         entity_mask1:
             index: 7
-            max_length: 60
+#            max_length: 60
             value_type: float32
             << : *default_slot
         entity_mask2:
             index: 8
-            max_length: 60
+#            max_length: 60
             value_type: float32
             << : *default_slot
 
@@ -198,7 +198,7 @@ model:
         word2gram: 'word2gram.npy'
         encoder_type: trigram # trigram or char
         encoder: mean # none, mean, region, CNN
-        region_radius: 1 # only for mean and region
+        region_radius: 2 # only for mean and region
         groups: 3 # only for CNN
         filters: # only for CNN
             - 300
