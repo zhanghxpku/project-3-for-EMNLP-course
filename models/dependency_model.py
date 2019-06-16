@@ -236,8 +236,8 @@ class DependencyModel(model_base.ModelBase):
 #        h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)
 #        # [relation_size, relation_max_len, char_emb_size+word_emb_size]
 #        h_relation = tf.concat([h_relation_char, h_relation_word], axis=-1)
-        h_pattern = h_pattern_char
-        h_relation = h_relation_char
+        h_pattern = h_pattern_word
+        h_relation = h_relation_word
 
         if config.combination.use_highway:
             dense_t = tf.layers.Dense(h_pattern.get_shape()[-1],

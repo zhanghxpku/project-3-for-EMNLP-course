@@ -181,7 +181,7 @@ model:
         relation2word_all: 'relation2word_all.npy'
     #    relation2word_train: 'relation2word_train.npy'
         emb_size: 300
-        encoder: none # none, mean, region, CNN
+        encoder: none # none, CNN
         region_radius: 2 # only for mean and region
         groups: 1 # only for CNN
         filters: # only for CNN
@@ -191,14 +191,14 @@ model:
 
     # Char-level encoder
     char:
-        emb_size: 1000
+        emb_size: 500
         relation2char: 'relation2char.npy'
         relation2gram: 'relation2gram.npy'
         word2char: 'word2char.npy'
         word2gram: 'word2gram.npy'
         encoder_type: trigram # trigram or char
         encoder: mean # none, mean, region, CNN
-        region_radius: 2 # only for mean and region
+        region_radius: 1 # only for mean and region
         groups: 3 # only for CNN
         filters: # only for CNN
             - 300
@@ -215,8 +215,8 @@ model:
     # Combination
     combination:
         use_highway: False
-        use_rnn: False
-        hidden_size: 500 # only for use_rnn
+        use_rnn: True
+        hidden_size: 1000 # only for use_rnn
         aggregation: max # max, mean, end (only for use_rnn), attention
     
     # Projection to semantic space
