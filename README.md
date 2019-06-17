@@ -3,7 +3,7 @@
 ## Requirements
 - Python 2.7
 - Tensorflow 1.12.0
-- NumPy
+- NumPy 1.16.3
 - *Python 3.6 (to preprocesse the data or transform inferring output to required format)*
 
 ## Implementation Instructions
@@ -22,4 +22,5 @@
 - python2 run.py semantic_parsing_model.yaml -action infer
 
 4. Transform inferring results to required format
+- results in **results/semantic_parsing** folder
 - python3 results/trans_format.py
