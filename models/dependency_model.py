@@ -67,8 +67,9 @@ class DependencyModel(model_base.ModelBase):
 #            relations_char = self.relation2char_emb_layer
 
 #        # [batch_size]
-        tags = inputs['relation']
-        entity_order = inputs['entity_order']
+        if mode != tf.estimator.ModeKeys.PREDICT:
+            tags = inputs['relation']
+            entity_order = inputs['entity_order']
 
         if config.train_order:
             entity_mask1 = inputs['entity_mask1']
@@ -280,9 +281,13 @@ class DependencyModel(model_base.ModelBase):
             
         if config.train_order:
             h_entity1 = tf.expand_dims(entity_mask1,axis=-1) * h_pattern
-            h_entity1 = tf.div_no_nan(tf.reduce_sum(h_entity1, axis=1), tf.expand_dims(tf.reduce_sum(entity_mask1, axis=1),axis=-1))
             h_entity2 = tf.expand_dims(entity_mask2,axis=-1) * h_pattern
-            h_entity2 = tf.div_no_nan(tf.reduce_sum(h_entity2, axis=1), tf.expand_dims(tf.reduce_sum(entity_mask2, axis=1),axis=-1))
+            if config.combination.aggregation == 'mean':
+                h_entity1 = tf.div_no_nan(tf.reduce_sum(h_entity1, axis=1), tf.expand_dims(tf.reduce_sum(entity_mask1, axis=1),axis=-1))
+                h_entity2 = tf.div_no_nan(tf.reduce_sum(h_entity2, axis=1), tf.expand_dims(tf.reduce_sum(entity_mask2, axis=1),axis=-1))
+            elif config.combination.aggregation == 'max':
+                h_entity1 = tf.reduce_max(h_entity1, axis=1)
+                h_entity2 = tf.reduce_max(h_entity2, axis=1)
 
             h_entity1 = tf.expand_dims(h_entity1, axis=1)
             h_entity2 = tf.expand_dims(h_entity2, axis=1)
@@ -387,13 +392,14 @@ class DependencyModel(model_base.ModelBase):
 ##            print 'prob', prob
 #            self.loss_op = tf.reduce_mean(prob)
 #        else:
-        labels_one_hot = tf.one_hot(tags, config.single_size + config.comb_size)
-        self.loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
-                        labels=labels_one_hot,
-                        logits=score))
+        if mode != tf.estimator.ModeKeys.PREDICT:
+            labels_one_hot = tf.one_hot(tags, config.single_size + config.comb_size)
+            self.loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
+                            labels=labels_one_hot,
+                            logits=score))
+            metric_layer = layers.EMMetricLayer()
         # [batch_size]
         self.infer_op = tf.argmax(score, -1)
-        metric_layer = layers.EMMetricLayer()
         
         if config.train_order:
             # [batch_size, 2, semantic_size]
@@ -413,9 +419,12 @@ class DependencyModel(model_base.ModelBase):
     #                        logits=score_order) * tf.cast(inputs['typ'],tf.float32))*0.001
             
             self.infer_order_op = tf.argmax(score_order, -1)
-
-            infer_total_op = self.infer_op * 2 + self.infer_order_op
-            entity_total = tags * 2 + entity_order
-            self.metric = metric_layer(self.infer_op,tags,self.infer_order_op,entity_order,infer_total_op,entity_total,single_weights=tf.cast(1-inputs['typ'],tf.float32), cvt_weights=tf.cast(inputs['typ'],tf.float32))
+            
+            if mode != tf.estimator.ModeKeys.PREDICT:
+                infer_total_op = self.infer_op * 2 + self.infer_order_op
+                entity_total = tags * 2 + entity_order
+                self.metric = metric_layer(self.infer_op,tags,self.infer_order_op,entity_order,infer_total_op,entity_total,single_weights=tf.cast(1-inputs['typ'],tf.float32), cvt_weights=tf.cast(inputs['typ'],tf.float32))
         else:
-            self.metric = metric_layer(self.infer_op,tags,single_weights=tf.cast(1-inputs['typ'],tf.float32), cvt_weights=tf.cast(inputs['typ'],tf.float32))
+            self.infer_order_op = self.infer_op
+            if mode != tf.estimator.ModeKeys.PREDICT:
+                self.metric = metric_layer(self.infer_op,tags,single_weights=tf.cast(1-inputs['typ'],tf.float32), cvt_weights=tf.cast(inputs['typ'],tf.float32))

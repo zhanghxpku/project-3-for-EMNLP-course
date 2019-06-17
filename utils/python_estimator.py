@@ -272,11 +272,11 @@ class PythonEstimator(object):
 #            for res in results:
 #                print res['pred']
             if hasattr(self.config, 'eval_to_file') and self.config.eval_to_file:
-                char2id = {i : line.strip() for i, line in enumerate(open(self.config.char2id, 'r'))}
-                word2id = {i : line.strip() for i, line in enumerate(open(self.config.word2id, 'r'))}
-                word2id_emb = {i : line.strip() for i, line in enumerate(open(self.config.word2id_emb, 'r'))}
+#                char2id = {i : line.strip() for i, line in enumerate(open(self.config.char2id, 'r'))}
+#                word2id = {i : line.strip() for i, line in enumerate(open(self.config.word2id, 'r'))}
+#                word2id_emb = {i : line.strip() for i, line in enumerate(open(self.config.word2id_emb, 'r'))}
                 relation2id = {i : line.strip() for i, line in enumerate(open(self.config.comb2id, 'r'))}
-                entity2id = {i : line.strip() for i, line in enumerate(open(self.config.entity2id, 'r'))}
+#                entity2id = {i : line.strip() for i, line in enumerate(open(self.config.entity2id, 'r'))}
                 
                 fout = open(self.config.eval_op_path+'.'+dataset_config.name, 'w')
                 fout_err = open(self.config.eval_op_path+'.'+dataset_config.name+'.error', 'w')
@@ -284,32 +284,13 @@ class PythonEstimator(object):
                     if res['word_train'] is None:
                         break
                     idx = res['idx']
-#                    char = map(lambda x: char2id.get(x, '<UNK>'), res['char'])
-                    word = map(lambda x: word2id.get(x, '<UNK>'), res['word_train'])
-                    word_emb = map(lambda x: word2id_emb.get(x, '<UNK>'), res['word_emb'])
                     relation = map(lambda x: relation2id.get(x, '<UNK>'), [res['relation']])
-                    entity = map(lambda x: entity2id.get(x, '<UNK>'), res['entity'])
                     pred = map(lambda x: relation2id.get(x, '<UNK>'), [res['pred']])
                     typ = res['typ']
-                    entity = entity[0] if res['typ'] == 0 else ' '.join(entity)
-                    word_len = 0
-                    for i in range(len(word_emb)):
-                        if res['word_emb'][i] == 0:
-                            word_len = i
-                            break
-#                    char_len = 0
-#                    for i in range(len(res['char'])):
-#                        if res['char'][i] == 0:
-#                            char_len = i
-#                            break
-                    fout.write('\n'.join([str(idx),' '.join(word[:word_len]),' '.join(word_emb[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
-                    res['word_emb'] = [str(c) for c in res['word_emb']]
-                    res['relation'] = str(res['relation'])
-                    res['entity'] = [str(c) for c in res['entity']]
-                    res['pred'] = str(res['pred'])
-                    fout.write('\n'.join([str(idx),' '.join(res['word_emb'][:word_len]),res['relation']+'\t'+res['pred'],' '.join(res['entity'])+'\t'+str(typ)+'\n']))
+                    pred_order = str(res['pred_order']) if str(typ) == '0' else ''
+                    fout.write('\n'.join([str(idx)+'\t'+relation[0]+'\t'+pred[0]+'\t'+str(typ)+'\t'+pred_order+'\n']))
                     if res['relation'] != res['pred']:
-                        fout_err.write('\n'.join([str(idx),' '.join(word[:word_len]),' '.join(word_emb[:word_len]),relation[0]+'\t'+pred[0],entity+'\t'+str(typ)+'\n']))
+                        fout_err.write('\n'.join([str(idx)+'\t'+relation[0]+'\t'+pred[0]+'\t'+str(typ)+'\t'+pred_order+'\n']))
                 fout.close()
                 fout_err.close()
 
@@ -444,23 +425,18 @@ class PythonEstimator(object):
             for single_result in self.iter_fetch_data(fetch_result['predictions']):
                 results.append(single_result)
 
-        word2id = {i : line.strip() for i, line in enumerate(open(self.config.word2id, 'r'))}
-        pos2id = {i : line.strip() for i, line in enumerate(open(self.config.pos2id, 'r'))}
+        relation2id = {i : line.strip() for i, line in enumerate(open(self.config.comb2id, 'r'))}
 
         fout = open(self.config.infer_op_path, 'w')
+        relation2id = {i : line.strip() for i, line in enumerate(open(self.config.comb2id, 'r'))}
         for res in results:
-            if res['word'] is None:
+            if res['word_train'] is None:
                 break
             idx = res['idx']
-            word = map(lambda x: word2id.get(x, '<UNK>'), res['word'])
-            upos = map(lambda x: pos2id.get(x, '<UNK>'), res['upos'])
-            xpos = map(lambda x: pos2id.get(x, '<UNK>'), res['xpos'])
-            pred = res['pred']
-            for i in range(len(word)):
-                if res['word'][i] == 0:
-                    break
-                fout.write('\t'.join([str(idx[i]),'_',word[i],upos[i],xpos[i],'_',str(pred[i]),'_','_','_'])+'\n')
-            fout.write('\n')
+            pred = map(lambda x: relation2id.get(x, '<UNK>'), [res['pred']])
+            typ = res['typ']
+            pred_order = str(res['pred_order'])
+            fout.write('\n'.join([str(idx)+'\t'+pred[0]+'\t'+str(typ)+'\t'+pred_order+'\n']))
         fout.close()
 
     # def export_model(self):

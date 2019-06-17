@@ -104,7 +104,7 @@ def seperate_relation():
         fout2.close()
         
 def generate_tables():
-    dataset = ['data/EMNLP.train', 'data/EMNLP.dev']
+    dataset = ['data/EMNLP.train', 'data/EMNLP.dev', 'data/EMNLP.test']
     
     words = set()
     words_all = set()
@@ -145,13 +145,16 @@ def generate_tables():
                     else:
                         char_len[len(sents_char)] = 1
                     max_char = max_char if max_char > len(sents_char) else len(sents_char)
-                    if sents[3] == ' '.join(ent_pair):
+                    if sents[-5] == ' '.join(ent_pair):
                         sents.append('0')
-                    elif sents[3] != ' '.join(ent_pair):
+                    elif sents[-5] != ' '.join(ent_pair):
                         sents.append('1')
                     ent_pair = []
                     sents.append('0' if question_type=='single' else '1')
-                    perm = [0,1,5,4,2,3,7,6]
+                    if len(sents) == 8:
+                        perm = [0,1,5,4,2,3,7,6]
+                    else:
+                        perm = [0,1,4,3,2,6,5]
                     sents_new = [sents[i] for i in perm]
                     mask = np.zeros([4])
                     mask_char = np.zeros([4])
@@ -171,11 +174,11 @@ def generate_tables():
                             count += 1
                     
                     entity_2 = np.zeros([len(sents_new[3])])
-                    for i in range(int(mask[0]), int(mask[1])):
+                    for i in range(int(mask[0]), int(mask[1])+1):
                         entity_2[i] = 1
                     sents_new.append(' '.join([str(int(i)) for i in entity_2]))
                     entity_2 = np.zeros([len(sents_new[3])])
-                    for i in range(int(mask[2]), int(mask[3])):
+                    for i in range(int(mask[2]), int(mask[3])+1):
                         entity_2[i] = 1
                     sents_new.append(' '.join([str(int(i)) for i in entity_2]))
 
@@ -192,26 +195,27 @@ def generate_tables():
                     if line.startswith('<question id'):
                         sents.append(line.split('\t')[0].split('=')[-1][:-1])
                         sents.append(line.split('\t')[1])
-                    #relation
+                    # relation
                     elif line.startswith('<logical'):
-                        line = line.split('\t')[1]
-                        line = line.split()
-                        if len(line) > 18:
-                            question_type = 'cvt'
-                        else:
-                            question_type = 'single'
-                        if question_type == 'single':
-                            word = line[4]
-                            relation.add(word)
-                            sents.append(word)
-                            relation_single.add(word)
-                        else:
-                            word = [line[8], line[13], line[18]]
-                            relation_comb.add(' '.join(word))
-                            ent_pair = [line[9], line[15]]
-                            for w in word:
-                                relation.add(w)
-                            sents.append(' '.join(word))
+                        if len(line.split('\t')) > 1:
+                            line = line.split('\t')[1]
+                            line = line.split()
+                            if len(line) > 18:
+                                question_type = 'cvt'
+                            else:
+                                question_type = 'single'
+                            if question_type == 'single':
+                                word = line[4]
+                                relation.add(word)
+                                sents.append(word)
+                                relation_single.add(word)
+                            else:
+                                word = [line[8], line[13], line[18]]
+                                relation_comb.add(' '.join(word))
+                                ent_pair = [line[9], line[15]]
+                                for w in word:
+                                    relation.add(w)
+                                sents.append(' '.join(word))
                     # entity
                     elif line.startswith('<parameters'):
                         line = line.split('\t')[1]
@@ -229,7 +233,7 @@ def generate_tables():
                         question_new.extend(question[int(loc[1])+1:])
                         max_len = max_len if max_len > len(question_new) else len(question_new)
                         sents[1] = ' '.join(question_new)
-                        if question_type == 'cvt':
+                        if '|||' in line:
                             # second entity
                             sents[-1] = sents[-1] + ' '+line[4]
                             entity_comb.add(sents[-1])
@@ -243,6 +247,10 @@ def generate_tables():
                             question_new.extend(['eeeee'])
                             question_new.extend(question[int(loc[1])+3:])
                             sents[1] = ' '.join(question_new)
+                    elif line.startswith('<question type'):
+                        question_type = line.strip().split('\t')[-1]
+                        if question_type == 'single-relation':
+                            question_type = 'single'
                         
         fout.close()
     
@@ -556,9 +564,9 @@ def build_pretrained(words, chars, trigrams, relation, read_glove=True):
 #def main():
 ## seperate into single relation and CVT
 #seperate_relation()
-words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_all, char_len, words_char = generate_tables()
-build_maps(words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_char)
-#words_emb = build_pretrained(words_all, chars, trigrams, relation, read_glove=False)
+#words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_all, char_len, words_char = generate_tables()
+#build_maps(words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_char)
+#words_emb = build_pretrained(words_all, chars, trigrams, relation, read_glove=True)
 
 
 #

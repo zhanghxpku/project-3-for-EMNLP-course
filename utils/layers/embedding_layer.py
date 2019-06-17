@@ -25,8 +25,7 @@ class EmbeddingLayer(Layer):
             mask = tf.expand_dims(tf.cast(tf.not_equal(seq, 0), dtype=tf.float32), axis=-1)
 #            seq_mask = tf.cast(tf.stack([tf.sign(seq)] * self._emb_size, axis=-1), tf.float32)
             emb = tf.nn.embedding_lookup(self._W, seq)
-            emb = emb * mask
-            return emb
+            return emb * mask
         else:
             return tf.nn.embedding_lookup(self._W, seq)
 

@@ -47,7 +47,7 @@ default_dataset: &default_dataset
             max_length: 60
             map_table: word2id
             pad: 0
-            << : *default_slot
+#            << : *default_slot
         word_emb:
             index: 2
 #            max_length: 60
@@ -94,42 +94,86 @@ pred_dataset: &pred_dataset
     buffer_size: 40000
     shuffle: True
     map_tables:
+        char2id:
+            path: char.dict
+        gram2id:
+            path: trigram.dict
         word2id:
-            path: word.dict
+            path: word_char.dict
         word2id_emb:
             path: word_emb.dict
         word2id_train:
-            path: word_train.dict
+            path: word.dict
         relation2id: 
             path: relation.dict
+        entity2id: 
+            path: entity.dict
+        comb2id: 
+            path: comb.dict
 
     slots: 
         idx:
             index: 0
             type: value
             value_type: int32
-        word:
+#        char: &default_slot
+#            index: 1
+#            type: sequence
+#            delim: " "
+#            map_table: char2id
+#            max_length: 264 # 389
+#            pad: 0
+#        gram:
+#            index: 2
+#            map_table: gram2id
+#            << : *default_slot
+        word_all:
             index: 1
+            type: sequence
+            delim: " "
+            max_length: 60
+            map_table: word2id
+            pad: 0
             << : *default_slot
         word_emb:
-            index: 3
+            index: 2
+#            max_length: 60
             map_table: word2id_emb
             << : *default_slot
         word_train:
+            index: 2
+#            max_length: 60
             map_table: word2id_train
             << : *default_slot
-        word_all:
-            map_table: word2id_all
+        relation:
+            index: 3
+            type: value
+            map_table: comb2id
             << : *default_slot
-#        relation:
-#            index: 2
-#            type: value
-#            map_table: relation2id
-#            << : *default_slot
         entity:
+            index: 3
+            max_length: 2
+            map_table: entity2id
+            << : *default_slot
+        typ:
             index: 4
             type: value
-            map_table: entity2id
+            value_type: int32
+        entity_order:
+            index: 4
+            type: value
+            value_type: int32
+        # Word
+        entity_mask1:
+            index: 6
+#            max_length: 60
+            value_type: float32
+            << : *default_slot
+        entity_mask2:
+            index: 7
+#            max_length: 60
+            value_type: float32
+            << : *default_slot
 
 train_dataset: &train_dataset
     path: data/EMNLP.train.new
@@ -145,10 +189,10 @@ test_dataset: &test_dataset
     path: data/EMNLP.dev.new
     << : *default_dataset
 
-#predict_dataset: &predict_dataset
-#    shuffle: False
-#    path: data/EMNLP.test.new
-#    << : *pred_dataset
+predict_dataset: &predict_dataset
+    shuffle: False
+    path: data/EMNLP.test.new
+    << : *pred_dataset
 
 # logging:
 #     file: results/semantic_parsing/logging.out
@@ -164,8 +208,8 @@ model:
     
     char_size: 206
     trigram_size: 9416
-    vocab_size: 21330
-    vocab_size_emb: 16908
+    vocab_size: 22869
+    vocab_size_emb: 17938
     vocab_size_train: 18490
     relation_size: 1562
     comb_size: 436
@@ -182,7 +226,7 @@ model:
     #    relation2word_train: 'relation2word_train.npy'
         emb_size: 300
         encoder: none # none, CNN
-        region_radius: 2 # only for mean and region
+#        region_radius: 2 # only for mean and region
         groups: 1 # only for CNN
         filters: # only for CNN
             - 50
@@ -216,8 +260,8 @@ model:
     combination:
         use_highway: False
         use_rnn: True
-        hidden_size: 1000 # only for use_rnn
-        aggregation: max # max, mean, end (only for use_rnn), attention
+        hidden_size: 500 # only for use_rnn
+        aggregation: end # max, mean, end (only for use_rnn), attention
     
     # Projection to semantic space
     layer_num: 0
@@ -243,27 +287,26 @@ estimator:
     eval_datasets:
 #        - *train_dataset
         - *dev_dataset
-        # - *test_dataset
     eval_to_file: True
     eval_op_path: results/semantic_parsing/eval.output
-    # infer_dataset: *predict_dataset
-    # infer_op_path: results/semantic_parsing/infer.output
+    infer_dataset: *predict_dataset
+    infer_op_path: results/semantic_parsing/infer.output
 
     batch_size: 100
     max_epochs: 40
 
-    char2id: char.dict
-    word2id: word.dict
-    word2id_emb: word_emb.dict
-    relation2id: relation.dict
+#    char2id: char.dict
+#    word2id: word.dict
+#    word2id_emb: word_emb.dict
+#    relation2id: relation.dict
     comb2id: comb.dict
-    entity2id: entity.dict
+#    entity2id: entity.dict
     checkpoint_dir: results/semantic_parsing/checkpoint
 
     model_name: semantic_parsing_model
     # save_checkpoints_steps: 2000
     eval_interval_epochs: 100
-#    eval_interval_steps: 100
+#    eval_interval_steps: 2
     max_training_steps: 31000
     log_every_n_steps: 20
     tolerance: 5

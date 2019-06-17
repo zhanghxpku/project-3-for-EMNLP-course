@@ -21,3 +21,5 @@ word.dict.emb
 *.300d
 data/EMNLP.test
 results/semantic_parsing/checkpoint/checkpoint
+*.output
+results/semantic_parsing/checkpoint/checkpoint
