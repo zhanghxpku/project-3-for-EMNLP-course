@@ -46,13 +46,7 @@ with open(test_data, encoding='utf-8') as fin:
         fout.write(line)
             
 fout.close()
-            
-            
-            
-            
-            
-            
-            
+
             
             
             

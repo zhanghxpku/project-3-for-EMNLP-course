@@ -29,17 +29,6 @@ default_dataset: &default_dataset
             index: 0
             type: value
             value_type: int32
-#        char: &default_slot
-#            index: 1
-#            type: sequence
-#            delim: " "
-#            map_table: char2id
-#            max_length: 264 # 389
-#            pad: 0
-#        gram:
-#            index: 2
-#            map_table: gram2id
-#            << : *default_slot
         word_all: &default_slot
             index: 1
             type: sequence
@@ -47,15 +36,12 @@ default_dataset: &default_dataset
             max_length: 60
             map_table: word2id
             pad: 0
-#            << : *default_slot
         word_emb:
             index: 2
-#            max_length: 60
             map_table: word2id_emb
             << : *default_slot
         word_train:
             index: 2
-#            max_length: 60
             map_table: word2id_train
             << : *default_slot
         relation:
@@ -79,12 +65,10 @@ default_dataset: &default_dataset
         # Word
         entity_mask1:
             index: 7
-#            max_length: 60
             value_type: float32
             << : *default_slot
         entity_mask2:
             index: 8
-#            max_length: 60
             value_type: float32
             << : *default_slot
 
@@ -116,17 +100,6 @@ pred_dataset: &pred_dataset
             index: 0
             type: value
             value_type: int32
-#        char: &default_slot
-#            index: 1
-#            type: sequence
-#            delim: " "
-#            map_table: char2id
-#            max_length: 264 # 389
-#            pad: 0
-#        gram:
-#            index: 2
-#            map_table: gram2id
-#            << : *default_slot
         word_all:
             index: 1
             type: sequence
@@ -137,12 +110,10 @@ pred_dataset: &pred_dataset
             << : *default_slot
         word_emb:
             index: 2
-#            max_length: 60
             map_table: word2id_emb
             << : *default_slot
         word_train:
             index: 2
-#            max_length: 60
             map_table: word2id_train
             << : *default_slot
         relation:
@@ -166,12 +137,10 @@ pred_dataset: &pred_dataset
         # Word
         entity_mask1:
             index: 6
-#            max_length: 60
             value_type: float32
             << : *default_slot
         entity_mask2:
             index: 7
-#            max_length: 60
             value_type: float32
             << : *default_slot
 
@@ -194,9 +163,9 @@ predict_dataset: &predict_dataset
     path: data/EMNLP.test.new
     << : *pred_dataset
 
-logging:
-    file: results/semantic_parsing/logging.out
-    level: 3
+ logging:
+     file: results/semantic_parsing/logging.out
+     level: 3
 
 # Model config
 model:
@@ -225,7 +194,6 @@ model:
         relation2word_all: 'relation2word_all.npy'
         emb_size: 300
         encoder: none # none, CNN
-#        region_radius: 2 # only for mean and region
         groups: 1 # only for CNN
         filters: # only for CNN
             - 50
@@ -234,7 +202,7 @@ model:
 
     # Char-level encoder
     char:
-        emb_size: 5
+        emb_size: 500
         relation2char: 'relation2char.npy'
         relation2gram: 'relation2gram.npy'
         word2char: 'word2char.npy'
@@ -249,35 +217,35 @@ model:
             - 300
         kernel_size: # only for CNN
             - 3
-            - 3
-            - 3
+            - 5
+            - 7
         use_rnn: False
         hidden_size: 500 # only for use_rnn
         aggregation: mean # max, mean, attention
 
     # Combination
     combination:
-        use_highway: False
+        use_highway: True
         use_rnn: True
-        hidden_size: 10 # only for use_rnn
+        hidden_size: 500 # only for use_rnn
         aggregation: max # max, mean, end (only for use_rnn), attention
     
     # Projection to semantic space
     layer_num: 0
-    semantic_size: 10
+    semantic_size: 1000
     gamma: 5
     comb2relation: 'comb2relation.npy'
     
     # Training
     batch_size: 100
     optimizer: Adam
-    learning_rate: 0.001
+    learning_rate: 0.005
     dropout_rate: 0.05
 #    negative_samples: 100
     use_clip_by_norm: True
     decay_step: 309
     decay_rate: 0.9
-    train_order: False
+    train_order: True
 
 # Estimator
 estimator:
@@ -287,15 +255,15 @@ estimator:
 #        - *train_dataset
         - *dev_dataset
     eval_to_file: True
-    eval_op_path: results/semantic_parsing/eval.output
+    eval_op_path: results/semantic_parsing9/eval.output
     infer_dataset: *predict_dataset
-    infer_op_path: results/semantic_parsing/infer.output
+    infer_op_path: results/semantic_parsing9/infer.output
 
-    batch_size: 1
+    batch_size: 100
     max_epochs: 40
 
     comb2id: comb.dict
-    checkpoint_dir: results/semantic_parsing/checkpoint
+    checkpoint_dir: results/semantic_parsing9/checkpoint
 
     model_name: semantic_parsing_model
     # save_checkpoints_steps: 2000

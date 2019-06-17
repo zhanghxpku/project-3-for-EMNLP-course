@@ -12,18 +12,20 @@ class MeanEncoder(Layer):
         self._vocab_size = vocab_size
         self._emb_size = emb_size
         self._region_radius = region_radius
-        self._paddings = tf.constant([[0, 0], [self._region_radius, self._region_radius], [0, 0]])
         self._bias = np.tile(np.array([i for i in range(region_radius*2+1)]),(1,1,1,1))
         self._W = tf.get_variable(name + '_W', shape=[(vocab_size)*(region_radius*2+1), emb_size],
                                   initializer=tf.contrib.layers.xavier_initializer(uniform=True, seed=None, dtype=tf.float32),
                                   trainable=trainable)
 
     def _forward(self, seq):
+        paddings = tf.constant([[0, 0], [self._region_radius, self._region_radius], [0, 0]])
         region_size = 2*self._region_radius + 1
-        padded_seq = tf.pad(seq, self._paddings, "CONSTANT")
+        padded_seq = tf.pad(seq, paddings, "CONSTANT")
         s = tf.shape(seq)
         r = tf.range(region_size)
+        seq = tf.Print(seq, [seq])
         align_emb = tf.map_fn(lambda i: padded_seq[:,i:i+s[1],:], r)
+        align_emb = tf.Print(align_emb, [align_emb])
         align_emb = tf.transpose(align_emb, perm=[1, 2, 3, 0])*region_size + self._bias
         mask = tf.expand_dims(tf.cast(tf.not_equal(seq, 0), dtype=tf.float32), axis=-1)
 #        W = tf.concat((tf.zeros(shape=[region_size, self._emb_size]), self._W), 0)

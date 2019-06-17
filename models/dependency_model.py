@@ -236,12 +236,10 @@ class DependencyModel(model_base.ModelBase):
 
 # ###########################################################################################       
         # Combination of word-level and char-level resp
-#        # [batch_size, max_len, char_emb_size+word_emb_size]
-#        h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)
-#        # [relation_size, relation_max_len, char_emb_size+word_emb_size]
-#        h_relation = tf.concat([h_relation_char, h_relation_word], axis=-1)
-        h_pattern = h_pattern_char
-        h_relation = h_relation_char
+       # [batch_size, max_len, char_emb_size+word_emb_size]
+       h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)
+       # [relation_size, relation_max_len, char_emb_size+word_emb_size]
+       h_relation = tf.concat([h_relation_char, h_relation_word], axis=-1)
 
         if config.combination.use_highway:
             dense_t = tf.layers.Dense(h_pattern.get_shape()[-1],
@@ -416,10 +414,10 @@ class DependencyModel(model_base.ModelBase):
             # [batch_size, 2]
             score_order = tf.einsum('bij,ji->bi', score_order, coef)
     
-    #        order_one_hot = tf.one_hot(entity_order, 2)
-    #        self.loss_op += tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
-    #                        labels=order_one_hot,
-    #                        logits=score_order) * tf.cast(inputs['typ'],tf.float32))*0.001
+           order_one_hot = tf.one_hot(entity_order, 2)
+           self.loss_op += tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
+                           labels=order_one_hot,
+                           logits=score_order) * tf.cast(inputs['typ'],tf.float32))*0.001
             
             self.infer_order_op = tf.argmax(score_order, -1)
             
