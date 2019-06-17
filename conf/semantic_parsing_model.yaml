@@ -194,9 +194,9 @@ predict_dataset: &predict_dataset
     path: data/EMNLP.test.new
     << : *pred_dataset
 
-# logging:
-#     file: results/semantic_parsing/logging.out
-#     level: 3
+logging:
+    file: results/semantic_parsing/logging.out
+    level: 3
 
 # Model config
 model:
@@ -234,7 +234,7 @@ model:
 
     # Char-level encoder
     char:
-        emb_size: 500
+        emb_size: 5
         relation2char: 'relation2char.npy'
         relation2gram: 'relation2gram.npy'
         word2char: 'word2char.npy'
@@ -259,12 +259,12 @@ model:
     combination:
         use_highway: False
         use_rnn: True
-        hidden_size: 500 # only for use_rnn
-        aggregation: mean # max, mean, end (only for use_rnn), attention
+        hidden_size: 10 # only for use_rnn
+        aggregation: max # max, mean, end (only for use_rnn), attention
     
     # Projection to semantic space
     layer_num: 0
-    semantic_size: 1000
+    semantic_size: 10
     gamma: 5
     comb2relation: 'comb2relation.npy'
     
@@ -291,7 +291,7 @@ estimator:
     infer_dataset: *predict_dataset
     infer_op_path: results/semantic_parsing/infer.output
 
-    batch_size: 100
+    batch_size: 1
     max_epochs: 40
 
     comb2id: comb.dict

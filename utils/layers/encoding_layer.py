@@ -28,9 +28,9 @@ class MeanEncoder(Layer):
         mask = tf.expand_dims(tf.cast(tf.not_equal(seq, 0), dtype=tf.float32), axis=-1)
 #        W = tf.concat((tf.zeros(shape=[region_size, self._emb_size]), self._W), 0)
         # [batch_size, max_len, region_radius, emb_size]
-        align_emb = tf.nn.embedding_lookup(self._W, align_emb) * mask
-        trigram_emb = tf.div_no_nan(tf.reduce_sum(align_emb,axis=-2), tf.count_nonzero(seq, axis=-1, dtype=tf.float32, keepdims=True))
-        h = tf.tanh(trigram_emb)
+        align_emb = tf.nn.embedding_lookup(self._W, align_emb)
+        trigram_emb = tf.reduce_sum(align_emb,axis=-2)
+        h = tf.tanh(trigram_emb) * mask
         return h
 
 
@@ -69,8 +69,7 @@ class RegionEncoder(Layer):
         # [batch_size, max_len, region_radius, emb_size]
         projected_emb = align_emb * trigram_emb
         mask = tf.expand_dims(tf.cast(tf.not_equal(seq, 0), dtype=tf.float32), axis=-1)
-        projected_emb = projected_emb * mask
-        h = tf.reduce_max(projected_emb, axis=-2)
+        h = tf.reduce_max(projected_emb, axis=-2) * mask
         return h
 
 

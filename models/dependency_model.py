@@ -142,19 +142,19 @@ class DependencyModel(model_base.ModelBase):
 #        patterns_emb_char = tf.reshape(patterns_emb_char, [-1,s_pattern[2]])
 #        relations_emb_char = tf.reshape(relations_emb_char, [-1,s_relation[2]])
         
-        if config.word.encoder == 'none':
+        if config.char.encoder == 'none':
             char_emb_layer = layers.EmbeddingLayer(vocab_size, config.char.emb_size, name='char_emb')
             patterns_emb_char = char_emb_layer(patterns_emb_char, zero_forward=True)
             relations_emb_char = char_emb_layer(relations_emb_char, zero_forward=True)
-        elif config.word.encoder == 'mean':
+        elif config.char.encoder == 'mean':
             char_encoder = layers.MeanEncoder(vocab_size, config.char.emb_size, config.char.region_radius, name='char_emb')
             patterns_emb_char = char_encoder(patterns_emb_char)
             relations_emb_char = char_encoder(relations_emb_char)
-        elif config.word.encoder == 'region':
+        elif config.char.encoder == 'region':
             char_encoder = layers.RegionEncoder(vocab_size, config.char.emb_size, config.char.region_radius, name='char_emb')
             patterns_emb_char = char_encoder(patterns_emb_char)
             relations_emb_char = char_encoder(relations_emb_char)
-        elif config.word.encoder == 'CNN':
+        elif config.char.encoder == 'CNN':
             char_encoder = layers.CNNEncoder(vocab_size, config.char.emb_size, config.char.groups, config.char.filters, config.char.kernel_size, name='char_emb')
             patterns_emb_char = char_encoder(patterns_emb_char)
             relations_emb_char = char_encoder(relations_emb_char)
@@ -240,8 +240,8 @@ class DependencyModel(model_base.ModelBase):
 #        h_pattern = tf.concat([h_pattern_char, h_pattern_word], axis=-1)
 #        # [relation_size, relation_max_len, char_emb_size+word_emb_size]
 #        h_relation = tf.concat([h_relation_char, h_relation_word], axis=-1)
-        h_pattern = h_pattern_word
-        h_relation = h_relation_word
+        h_pattern = h_pattern_char
+        h_relation = h_relation_char
 
         if config.combination.use_highway:
             dense_t = tf.layers.Dense(h_pattern.get_shape()[-1],

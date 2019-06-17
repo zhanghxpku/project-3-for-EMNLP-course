@@ -564,9 +564,9 @@ def build_pretrained(words, chars, trigrams, relation, read_glove=True):
 #def main():
 ## seperate into single relation and CVT
 #seperate_relation()
-#words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_all, char_len, words_char = generate_tables()
-#build_maps(words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_char)
-#words_emb = build_pretrained(words_all, chars, trigrams, relation, read_glove=True)
+words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_all, char_len, words_char = generate_tables()
+build_maps(words, chars, trigrams, relation, comb, relation_single, max_len, max_char, words_char)
+words_emb = build_pretrained(words_all, chars, trigrams, relation, read_glove=True)
 
 
 #
