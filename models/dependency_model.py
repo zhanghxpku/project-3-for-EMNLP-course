@@ -86,7 +86,10 @@ class DependencyModel(model_base.ModelBase):
                                                           trainable=config.word.word_emb_finetune,
                                                           name='word_emb')
         relations_emb = self.relation2word_emb_layer
-
+        
+        patterns_emb = tf.Print(patterns_emb, [patterns_emb])
+        
+        
         if config.word.encoder == 'none':
             patterns_emb = word_emb_layer(patterns_emb, zero_forward=True)
             relations_emb = word_emb_layer(relations_emb, zero_forward=True)
@@ -309,8 +312,8 @@ class DependencyModel(model_base.ModelBase):
             h_relation = tf.reduce_max(h_relation - relation_mask*1000, axis=1)
         elif config.combination.aggregation == 'mean':
 #            emb_size = tf.shape(h_pattern)[-1]
-            h_pattern = tf.div_no_nan(tf.reduce_sum(h_pattern), tf.count_nonzero(patterns_word, axis=-1, dtype=tf.float32, keepdims=True))
-            h_relation = tf.div_no_nan(tf.reduce_sum(h_relation), tf.count_nonzero(relations_word, axis=-1, dtype=tf.float32, keepdims=True))
+            h_pattern = tf.div_no_nan(tf.reduce_sum(h_pattern, axis=1), tf.count_nonzero(patterns_word, axis=-1, dtype=tf.float32, keepdims=True))
+            h_relation = tf.div_no_nan(tf.reduce_sum(h_relation, axis=1), tf.count_nonzero(relations_word, axis=-1, dtype=tf.float32, keepdims=True))
         elif config.combination.aggregation == 'end':
             h_pattern = tf.concat([results_fw, results_bw], axis=-1)
             h_relation = tf.concat([results_fw_relation, results_bw_relation], axis=-1)

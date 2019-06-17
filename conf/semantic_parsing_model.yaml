@@ -5,7 +5,7 @@ default_dataset: &default_dataset
     type: PythonDataset
     delim: "\t"
     buffer_size: 40000
-    shuffle: True
+    shuffle: False
     map_tables:
         char2id:
             path: char.dict
@@ -223,7 +223,6 @@ model:
         relation2word: 'relation2word.npy'
         relation2word_emb: 'relation2word_emb.npy'
         relation2word_all: 'relation2word_all.npy'
-    #    relation2word_train: 'relation2word_train.npy'
         emb_size: 300
         encoder: none # none, CNN
 #        region_radius: 2 # only for mean and region
@@ -261,7 +260,7 @@ model:
         use_highway: False
         use_rnn: True
         hidden_size: 500 # only for use_rnn
-        aggregation: end # max, mean, end (only for use_rnn), attention
+        aggregation: mean # max, mean, end (only for use_rnn), attention
     
     # Projection to semantic space
     layer_num: 0
@@ -295,12 +294,7 @@ estimator:
     batch_size: 100
     max_epochs: 40
 
-#    char2id: char.dict
-#    word2id: word.dict
-#    word2id_emb: word_emb.dict
-#    relation2id: relation.dict
     comb2id: comb.dict
-#    entity2id: entity.dict
     checkpoint_dir: results/semantic_parsing/checkpoint
 
     model_name: semantic_parsing_model
