@@ -4,10 +4,12 @@
 - Python 2.7
 - Tensorflow 1.12.0
 - NumPy
-- Python 3.6 (to preprocesse the data or transform inferring output to required format)
+- *Python 3.6 (to preprocesse the data or transform inferring output to required format)*
 
 ## Implementation Instructions
 0. Data preprocessing
+- Datasets should be put in **data** folder
+- GloVE embedding should be put in **data/embedding** folder
 - python3 new_processing.py
 
 1. To train the model on training set
